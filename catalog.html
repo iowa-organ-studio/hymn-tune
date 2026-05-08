@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tune Catalog</title>
+  <style>
+    :root{
+      --gold:#FFC600;--gold-border:#d7a900;
+      --gold-lite:#FFEFAD;--gold-lite-border:#E6D48A;--gold-lite-hover:#FFE68A;
+
+      --btn-blue:#0a64dc;--btn-blue-hover:#084fb0;
+
+      --bg:#f7f7f9;
+      --card:#fff;
+      --border:#ddd;
+      --text:#222;
+      --muted:#666;
+    }
+
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      margin:0; padding:12px; background:var(--bg); color:var(--text);
+    }
+
+    .topbar{ display:block; margin-bottom:10px; }
+    .titleblock h1{ margin:0; font-size:1.25rem; }
+    .titleblock .sub{ margin:4px 0 0; color:var(--muted); font-size:.95rem; }
+
+    .navLink{
+      display:inline-block;
+      margin-top:6px;
+      font-size:1rem;
+      font-weight:700;
+      text-decoration:none;
+      color:var(--btn-blue);
+    }
+    .navLink:hover{ text-decoration:underline; }
+
+    .panel{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px;
+      margin-bottom:10px;
+    }
+
+    .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .controls input[type="search"]{
+      padding:8px 10px;
+      border:1px solid var(--border);
+      border-radius:8px;
+      min-width:260px;
+      font-size:.95rem;
+      background:#fff;
+    }
+    .controls .note{ color:var(--muted); font-size:.9rem; }
+
+    .btn{
+      border:1px solid var(--gold-lite-border);
+      background:var(--gold-lite);
+      color:#3b2f00;
+      border-radius:8px;
+      padding:7px 10px;
+      font-weight:700;
+      cursor:pointer;
+      font-size:.92rem;
+    }
+    .btn:hover{ background:var(--gold-lite-hover); }
+
+    .tableWrap{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:10px;
+      overflow:auto;
+    }
+
+    table{
+      border-collapse:separate;
+      border-spacing:0;
+      width:100%;
+      min-width:760px;
+    }
+
+    thead th{
+      position:sticky; top:0;
+      background:#fff;
+      border-bottom:1px solid var(--border);
+      padding:8px 10px;             /* slightly tighter */
+      text-align:left;
+      font-size:.92rem;
+      user-select:none;
+      white-space:nowrap;
+    }
+    thead th.sortable{ cursor:pointer; }
+    thead th.sortable:hover{ background:#fafafa; }
+
+    /* sort label + arrows */
+    .thWrap{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .sortArrows{
+      display:inline-flex;
+      flex-direction:column;
+      line-height:0.9;
+      font-size:.72rem;
+      color:#b7b7b7;
+      margin-top:1px;
+    }
+    .sortArrows span{ height:10px; display:block; }
+    th.isActive .sortArrows{ color:#222; }
+
+    tbody td{
+      border-bottom:1px solid #eee;
+      padding:6px 10px;            /* tighter rows */
+      vertical-align:top;
+      font-size:.95rem;
+      font-weight:400;
+      color:var(--text);
+    }
+    tbody tr:hover{ background:#fcfcff; }
+
+    .titleLink{
+      color:var(--text);
+      text-decoration:none;
+      font-weight:600;
+      line-height:1.15;
+      cursor:pointer;
+    }
+    .titleLink:hover{
+      text-decoration:underline;
+      color:var(--btn-blue);
+    }
+
+    .pills{ display:flex; flex-wrap:wrap; gap:6px; }
+    .pill{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fff;
+      color:#333;
+      font-weight:700;
+      font-size:.84rem;
+      line-height:1.2;
+      white-space:nowrap;
+    }
+
+    /* smaller checkbox “pill” */
+    .checkbox{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:2px 6px;
+      border:1px solid var(--border);
+      border-radius:8px;
+      background:#fff;
+      font-weight:700;
+    }
+    .checkbox input{
+      width:13px;
+      height:13px;
+      margin:0;
+    }
+
+    .right{ text-align:right; white-space:nowrap; }
+
+    footer{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:.85rem;
+    }
+
+    /* ===============================
+       Modal Preview (hovering window)
+       =============================== */
+    #previewOverlay{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.45);
+      display:none;
+      z-index:9999;
+    }
+    #previewOverlay.show{ display:block; }
+
+    #previewModal{
+      position:absolute;
+      left:50%; top:50%;
+      transform:translate(-50%,-50%);
+      width:min(1100px, calc(100vw - 24px));
+      max-height:calc(100vh - 24px);
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:12px;
+      box-shadow:0 14px 50px rgba(0,0,0,.25);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+
+    #previewHeader{
+      padding:10px 12px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    #previewTitle{
+      margin:0;
+      font-weight:900;
+      font-size:1.05rem;
+      line-height:1.1;
+    }
+    #previewMeta{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:.9rem;
+      font-weight:600;
+    }
+
+    #previewBody{
+      padding:8px;
+      overflow:auto;
+      background:#fff;
+    }
+    #previewSvg svg{ display:block; }
+
+    @media (max-width: 600px){
+      #previewHeader{ padding:8px 10px; }
+      #previewBody{ padding:6px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="topbar">
+    <div class="titleblock">
+      <h1>Tune Catalog</h1>
+      <div class="sub">Sortable list of tunes in <code>/tunes</code>. Click a title to engrave it.</div>
+      <a class="navLink" href="index.html">Back to the Random Hymn Tune Generator</a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="controls">
+      <input id="searchBox" type="search" placeholder="Search title / collection / meter / mode…" autocomplete="off" />
+      <button class="btn" id="clearSearchBtn" type="button">Clear</button>
+      <span class="note" id="countNote">Loading…</span>
+    </div>
+  </div>
+
+  <div class="tableWrap">
+    <table id="tuneTable" aria-label="Tune catalog">
+      <thead>
+        <tr>
+          <th class="sortable right" data-key="mine" title="Local-only collection stored in your browser">
+            <span class="thWrap">
+              <span>My Collection</span>
+              <span class="sortArrows" aria-hidden="true"><span>▲</span><span>▼</span></span>
+            </span>
+          </th>
+          <th class="sortable" data-key="title">
+            <span class="thWrap">
+              <span>Title</span>
+              <span class="sortArrows" aria-hidden="true"><span>▲</span><span>▼</span></span>
+            </span>
+          </th>
+          <th class="sortable" data-key="collections">
+            <span class="thWrap">
+              <span>Collection</span>
+              <span class="sortArrows" aria-hidden="true"><span>▲</span><span>▼</span></span>
+            </span>
+          </th>
+          <th class="sortable" data-key="mode">
+            <span class="thWrap">
+              <span>Mode</span>
+              <span class="sortArrows" aria-hidden="true"><span>▲</span><span>▼</span></span>
+            </span>
+          </th>
+          <th class="sortable" data-key="meter">
+            <span class="thWrap">
+              <span>Meter</span>
+              <span class="sortArrows" aria-hidden="true"><span>▲</span><span>▼</span></span>
+            </span>
+          </th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="5" style="color:#666;padding:12px;">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    Tip: “My Collection” is stored locally (in your browser) via <code>localStorage</code> and will match what the generator uses.
+  </footer>
+
+  <!-- ===============================
+       Modal Preview markup
+       =============================== -->
+  <div id="previewOverlay" role="dialog" aria-modal="true" aria-label="Tune preview">
+    <div id="previewModal">
+      <div id="previewHeader">
+        <div>
+          <div id="previewTitle">—</div>
+          <div id="previewMeta">—</div>
+        </div>
+        <button class="btn" id="previewCloseBtn" type="button">Close</button>
+      </div>
+      <div id="previewBody">
+        <div id="previewSvg"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===============================
+   Shared local-only My Collection
+   =============================== */
+const MY_KEY   = "tuneCatalog.myCollection.v1";
+
+function getMySet(){
+  try{
+    const raw = localStorage.getItem(MY_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(arr) ? arr : []);
+  }catch{
+    return new Set();
+  }
+}
+function saveMySet(set){
+  localStorage.setItem(MY_KEY, JSON.stringify(Array.from(set)));
+}
+
+/* ===============================
+   Tune discovery
+   =============================== */
+let tuneFiles = [];
+
+async function discoverTunes(){
+  // manifest first
+  try{
+    const res = await fetch(`tunes.json?_=${Date.now()}`, { cache:"no-cache" });
+    if (res.ok){
+      const arr = await res.json();
+      const mei = (Array.isArray(arr) ? arr : [])
+        .filter(x => typeof x === "string")
+        .map(x => x.split("#")[0].split("?")[0])
+        .filter(x => /\.mei$/i.test(x))
+        .map(x => x.replace(/^\.?\//,"").replace(/\\/g,"/"));
+      if (mei.length){
+        tuneFiles = Array.from(new Set(mei));
+        return;
+      }
+    }
+  }catch{}
+
+  // directory listing fallback
+  try{
+    const res = await fetch(`tunes/?_=${Date.now()}`, { cache:"no-cache" });
+    if (res.ok){
+      const html = await res.text();
+      const tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      const hrefs = Array.from(tmp.querySelectorAll("a[href]"))
+        .map(a => a.getAttribute("href"))
+        .filter(Boolean);
+
+      const paths = hrefs
+        .map(h => h.split("#")[0].split("?")[0])
+        .filter(h => /\.mei$/i.test(h))
+        .map(h => (h.startsWith("tunes/") ? h : `tunes/${h.replace(/^\.?\//,"")}`));
+
+      if (paths.length){
+        tuneFiles = Array.from(new Set(paths));
+        return;
+      }
+    }
+  }catch{}
+
+  tuneFiles = [];
+}
+
+/* ===============================
+   MEI metadata parsing
+   =============================== */
+const MEI_NS = "http://www.music-encoding.org/ns/mei";
+const METADATA_CACHE_VERSION = 6;
+const meiCache = {};
+const mdCache  = {};
+
+function nodelistToArray(nl){ return Array.prototype.slice.call(nl || []); }
+function allByTagNS(xml, tag){ return nodelistToArray(xml.getElementsByTagNameNS(MEI_NS, tag)); }
+function firstByTagNS(xml, tag){
+  const nl = xml.getElementsByTagNameNS(MEI_NS, tag);
+  return nl && nl.length ? nl[0] : null;
+}
+
+async function fetchMei(fileName){
+  if (!meiCache[fileName]){
+    const res = await fetch(fileName, { cache:"no-cache" });
+    if (!res.ok) throw new Error(`Failed to fetch ${fileName}: ${res.status}`);
+    meiCache[fileName] = await res.text();
+  }
+  return meiCache[fileName];
+}
+
+function parseCommentMetadataFromXml(xmlDoc){
+  if (!xmlDoc || !xmlDoc.documentElement) return null;
+
+  const meiRoot = firstByTagNS(xmlDoc, "mei") || xmlDoc.documentElement;
+  const walker = xmlDoc.createTreeWalker(meiRoot, NodeFilter.SHOW_COMMENT, null);
+
+  const lines = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()){
+    const text = (n.nodeValue || "").trim();
+    if (!text) continue;
+    text.split(/\r?\n/).forEach(line => {
+      const s = line.trim();
+      if (s) lines.push(s);
+    });
+  }
+  if (!lines.length) return null;
+
+  const md = { keyMode:"", meterSig:"", collection:"", collections:[], title:"" };
+
+  for (const line of lines){
+    let mm = line.match(/^keyMode\s*:\s*(major|minor)\s*$/i);
+    if (mm){ md.keyMode = mm[1].toLowerCase(); continue; }
+
+    mm = line.match(/^meterSig\s*:\s*(\d+)\s*\/\s*(\d+)\s*$/i);
+    if (mm){ md.meterSig = `${mm[1]}/${mm[2]}`; continue; }
+
+    mm = line.match(/^collection\s*:\s*(.+)$/i);
+    if (mm){
+      const c = mm[1].trim();
+      if (c) md.collections.push(c);
+      if (!md.collection && c) md.collection = c;
+      continue;
+    }
+
+    mm = line.match(/^title\s*:\s*(.+)$/i);
+    if (mm){ md.title = mm[1].trim(); continue; }
+  }
+
+  const hasSomething = ["keyMode","meterSig","collection","title"].some(k => md[k]);
+  return hasSomething ? md : null;
+}
+
+function meterSigFromXml(xml){
+  const meters = allByTagNS(xml, "meterSig");
+  const mSig = meters.length ? meters[0] : null;
+  const count = (mSig?.getAttribute("count") || "").trim();
+  const unit  = (mSig?.getAttribute("unit")  || "").trim();
+  return (count && unit) ? `${count}/${unit}` : "";
+}
+
+function collectionsFromXml(xml){
+  const identifiers = allByTagNS(xml, "identifier");
+  return identifiers
+    .filter(el => (el.getAttribute("type") || "").toLowerCase() === "collection")
+    .map(el => (el.textContent || "").trim())
+    .filter(Boolean);
+}
+
+async function getMetadata(fileName){
+  const cached = mdCache[fileName];
+  if (cached && cached.__v === METADATA_CACHE_VERSION) return cached;
+
+  const meiText = await fetchMei(fileName);
+  const xml = new DOMParser().parseFromString(meiText, "application/xml");
+
+  const fromComments = parseCommentMetadataFromXml(xml);
+  if (fromComments){
+    if (!fromComments.meterSig) fromComments.meterSig = meterSigFromXml(xml);
+    if (!fromComments.collections || !fromComments.collections.length){
+      fromComments.collections = collectionsFromXml(xml);
+      if (!fromComments.collection && fromComments.collections.length){
+        fromComments.collection = fromComments.collections[0];
+      }
+    }
+    if (!fromComments.title){
+      const titleEl = firstByTagNS(xml, "title");
+      fromComments.title = (titleEl?.textContent || "").trim();
+    }
+    const out = { ...fromComments, __v: METADATA_CACHE_VERSION };
+    mdCache[fileName] = out;
+    return out;
+  }
+
+  const collections = collectionsFromXml(xml);
+  const collection  = collections.length ? collections[0] : "";
+  const meterSig    = meterSigFromXml(xml);
+  const titleEl = firstByTagNS(xml, "title");
+  const title = (titleEl?.textContent || "").trim();
+  const keys = allByTagNS(xml, "key");
+  const keyEl = keys.length ? keys[0] : null;
+  const keyMode  = (keyEl?.getAttribute("mode")  || "").trim();
+
+  const out = { keyMode, collection, collections, meterSig, title, __v: METADATA_CACHE_VERSION };
+  mdCache[fileName] = out;
+  return out;
+}
+
+/* ===============================
+   Table state + rendering
+   =============================== */
+let rows = [];
+let sortKey = "title";
+let sortDir = "asc";
+let filterText = "";
+
+function norm(s){ return String(s||"").toLowerCase().trim(); }
+
+function compare(a,b){
+  const dir = (sortDir === "asc") ? 1 : -1;
+
+  if (sortKey === "mine"){
+    // sort by whether it's in My Collection (checked first for asc)
+    const mySet = getMySet();
+    const av = mySet.has(a.file) ? 1 : 0;
+    const bv = mySet.has(b.file) ? 1 : 0;
+    if (av !== bv) return dir * (bv - av); // checked first when asc
+    // tie-breaker by title for stability
+    return String(a.title||"").localeCompare(String(b.title||""), undefined, { sensitivity:"base", numeric:true });
+  }
+
+  if (sortKey === "collections"){
+    const aj = (a.collections || []).join(";");
+    const bj = (b.collections || []).join(";");
+    return dir * aj.localeCompare(bj, undefined, { sensitivity:"base", numeric:true });
+  }
+
+  return dir * String(a[sortKey]||"").localeCompare(String(b[sortKey]||""), undefined, { sensitivity:"base", numeric:true });
+}
+
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function matchesFilter(r){
+  if (!filterText) return true;
+  const t = norm(filterText);
+  const hay = [
+    r.title,
+    (r.collections||[]).join(" "),
+    r.mode,
+    r.meter
+  ].map(norm).join(" | ");
+  return hay.includes(t);
+}
+
+function updateCountNote(countShown, total){
+  document.getElementById("countNote").textContent = `${countShown} of ${total} tunes`;
+}
+
+function updateSortIndicators(){
+  document.querySelectorAll("thead th.sortable").forEach(th => {
+    const key = th.getAttribute("data-key");
+    const arrows = th.querySelector(".sortArrows");
+    th.classList.toggle("isActive", key === sortKey);
+
+    if (!arrows) return;
+    // default (inactive) shows both grey; active shows direction emphasized by text
+    arrows.innerHTML =
+      (key === sortKey)
+        ? (sortDir === "asc"
+            ? `<span>▲</span><span style="opacity:.25">▼</span>`
+            : `<span style="opacity:.25">▲</span><span>▼</span>`)
+        : `<span>▲</span><span>▼</span>`;
+  });
+}
+
+function renderTable(){
+  const tbody = document.getElementById("tbody");
+  const mySet = getMySet();
+
+  const filtered = rows.filter(matchesFilter).sort(compare);
+  updateCountNote(filtered.length, rows.length);
+  updateSortIndicators();
+
+  if (!filtered.length){
+    tbody.innerHTML = `<tr><td colspan="5" style="color:#666;padding:12px;">No matches.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => {
+    const isMine = mySet.has(r.file);
+
+    const collections = (r.collections && r.collections.length) ? r.collections : [];
+    const colPills = collections.length
+      ? `<div class="pills">${collections.map(c => `<span class="pill">${escapeHtml(c)}</span>`).join("")}</div>`
+      : `<span class="pill">—</span>`;
+
+    const mode = r.mode ? escapeHtml(r.mode) : "—";
+    const meter = r.meter ? escapeHtml(r.meter) : "—";
+
+    return `
+      <tr>
+        <td class="right">
+          <label class="checkbox" title="Add/remove from local-only My Collection">
+            <input type="checkbox" data-file="${escapeHtml(r.file)}" ${isMine ? "checked":""}/>
+          </label>
+        </td>
+        <td>
+          <a href="#" class="titleLink" data-engrave="${escapeHtml(r.file)}">${escapeHtml(r.title || "—")}</a>
+        </td>
+        <td>${colPills}</td>
+        <td>${mode}</td>
+        <td>${meter}</td>
+      </tr>
+    `;
+  }).join("");
+
+  tbody.querySelectorAll('input[type="checkbox"][data-file]').forEach(cb => {
+    cb.addEventListener("change", (e) => {
+      const file = e.target.getAttribute("data-file");
+      const set = getMySet();
+      if (e.target.checked) set.add(file);
+      else set.delete(file);
+      saveMySet(set);
+
+      // If currently sorting by My Collection, re-render so rows move immediately
+      if (sortKey === "mine") renderTable();
+    });
+  });
+
+  tbody.querySelectorAll('a.titleLink[data-engrave]').forEach(a => {
+    a.addEventListener("click", async (e) => {
+      e.preventDefault();
+      await previewTune(a.getAttribute("data-engrave"));
+    });
+  });
+}
+
+function setSort(key){
+  if (sortKey === key) sortDir = (sortDir === "asc") ? "desc" : "asc";
+  else { sortKey = key; sortDir = "asc"; }
+  renderTable();
+}
+
+/* ===============================
+   Modal Preview helpers
+   =============================== */
+const overlay = document.getElementById("previewOverlay");
+const closeBtn = document.getElementById("previewCloseBtn");
+const previewSvg = document.getElementById("previewSvg");
+
+function openPreview(){
+  overlay.classList.add("show");
+}
+function closePreview(){
+  overlay.classList.remove("show");
+  previewSvg.innerHTML = "";
+}
+closeBtn.addEventListener("click", closePreview);
+overlay.addEventListener("click", (e) => {
+  if (e.target === overlay) closePreview();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && overlay.classList.contains("show")) closePreview();
+});
+
+/* ===============================
+   Verovio engraving
+   =============================== */
+let vrvToolkit = null;
+
+function loadScript(src){
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src; s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(s);
+  });
+}
+
+function stripMeiTitle(meiText){
+  try{
+    const xml = new DOMParser().parseFromString(meiText, "application/xml");
+    const titleStmts = allByTagNS(xml, "titleStmt");
+    for (const ts of titleStmts){
+      if (ts && ts.parentNode) ts.parentNode.removeChild(ts);
+    }
+    return new XMLSerializer().serializeToString(xml);
+  }catch{
+    return meiText;
+  }
+}
+
+function computePreviewPageWidth(){
+  const modalBody = document.getElementById("previewBody");
+  const w = modalBody ? modalBody.clientWidth : 900;
+  return Math.max(1100, Math.floor(w * 2.0));
+}
+
+function trimSvgWhitespace(hostEl, pad = 12){
+  const svg = hostEl ? hostEl.querySelector("svg") : null;
+  if (!svg) return;
+
+  if (!svg.getAttribute("viewBox")){
+    const w = parseFloat(svg.getAttribute("width") || "0") || 0;
+    const h = parseFloat(svg.getAttribute("height") || "0") || 0;
+    if (w > 0 && h > 0) svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  }
+
+  try{
+    const box = svg.getBBox();
+    const x = Math.max(0, box.x - pad);
+    const y = Math.max(0, box.y - pad);
+    const w = box.width + pad * 2;
+    const h = box.height + pad * 2;
+    svg.setAttribute("viewBox", `${x} ${y} ${w} ${h}`);
+    svg.removeAttribute("height");
+    svg.style.height = "auto";
+  }catch{}
+}
+
+const engraveOptionsBase = {
+  scale: 44,
+  pageWidth: 1800,
+  pageHeight: 2000,
+  adjustPageHeight: true,
+  pageMarginLeft: 20,
+  pageMarginRight: 20,
+  pageMarginTop: 24,
+  pageMarginBottom: 24,
+  spacingSystem: 10,
+  spacingStaff: 8,
+  spacingLinear: 0.16,
+  spacingNonLinear: 0.40,
+  minMeasureWidth: 44,
+  justifyVertically: false,
+  breaks: "auto",
+  spacingLyrics: 6
+};
+
+async function ensureVerovio(){
+  if (vrvToolkit) return;
+  const verovioUrl = "https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js?v=latest";
+  await loadScript(verovioUrl);
+
+  await new Promise((resolve, reject) => {
+    const start = performance.now();
+    const maxWait = 10000;
+    (function poll(){
+      if (window.verovio && window.verovio.module) return resolve();
+      if (performance.now() - start > maxWait) return reject(new Error("Verovio global not found"));
+      setTimeout(poll, 50);
+    })();
+  });
+
+  await new Promise((resolve, reject) => {
+    try{
+      window.verovio.module.onRuntimeInitialized = () => {
+        try{
+          vrvToolkit = new verovio.toolkit();
+          resolve();
+        }catch(e){ reject(e); }
+      };
+    }catch(e){ reject(e); }
+  });
+}
+
+async function previewTune(file){
+  await ensureVerovio();
+
+  const md = await getMetadata(file);
+  const title = (md.title || "—").trim();
+  const cols = (md.collections && md.collections.length) ? md.collections : (md.collection ? [md.collection] : []);
+  const mode = md.keyMode ? (md.keyMode.toLowerCase() === "minor" ? "Minor" : "Major") : "—";
+  const meter = md.meterSig || "—";
+
+  document.getElementById("previewTitle").textContent = title;
+  document.getElementById("previewMeta").textContent =
+    `Collections: ${cols.length ? cols.join("; ") : "—"} | Mode: ${mode} | Meter: ${meter}`;
+
+  openPreview();
+  previewSvg.innerHTML = `<div style="color:#666;padding:10px;">Engraving…</div>`;
+
+  let mei = await fetchMei(file);
+  mei = stripMeiTitle(mei);
+
+  vrvToolkit.setOptions({
+    ...engraveOptionsBase,
+    pageWidth: computePreviewPageWidth()
+  });
+
+  vrvToolkit.loadData(mei);
+  const svg = vrvToolkit.renderToSVG(1, {});
+  previewSvg.innerHTML = svg;
+
+  trimSvgWhitespace(previewSvg, 12);
+}
+
+/* ===============================
+   Init
+   =============================== */
+async function buildRows(){
+  const out = [];
+  for (const f of tuneFiles){
+    try{
+      const md = await getMetadata(f);
+      const title = (md.title || f.split("/").pop().replace(/\.mei$/i,"") || "—").trim();
+      const cols = (md.collections && md.collections.length) ? md.collections : (md.collection ? [md.collection] : []);
+      const mode = md.keyMode ? (md.keyMode.toLowerCase() === "minor" ? "Minor" : "Major") : "";
+      const meter = md.meterSig || "";
+      out.push({ file:f, title, collections: cols, mode, meter });
+    }catch{
+      const fallback = f.split("/").pop().replace(/\.mei$/i,"") || "—";
+      out.push({ file:f, title:fallback, collections:[], mode:"", meter:"" });
+    }
+  }
+  return out;
+}
+
+async function init(){
+  document.querySelectorAll("th.sortable[data-key]").forEach(th => {
+    th.addEventListener("click", () => setSort(th.getAttribute("data-key")));
+    th.title = "Click to sort";
+  });
+
+  const searchBox = document.getElementById("searchBox");
+  searchBox.addEventListener("input", () => {
+    filterText = searchBox.value || "";
+    renderTable();
+  });
+  document.getElementById("clearSearchBtn").addEventListener("click", () => {
+    searchBox.value = "";
+    filterText = "";
+    renderTable();
+    searchBox.focus();
+  });
+
+  await discoverTunes();
+  if (!tuneFiles.length){
+    document.getElementById("tbody").innerHTML =
+      `<tr><td colspan="5" style="color:#666;padding:12px;">No tunes found. (Missing tunes.json and directory listing unavailable.)</td></tr>`;
+    document.getElementById("countNote").textContent = "0 tunes";
+    return;
+  }
+
+  rows = await buildRows();
+  renderTable();
+}
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
+
+</body>
+</html>

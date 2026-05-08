@@ -1,0 +1,1659 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-YKGZCSRPSL"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-YKGZCSRPSL');
+</script>
+  
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Random Hymn Tune</title>
+
+  <!-- Modern, clean font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f7f7f9;
+      --card:#ffffff;
+      --border:#e3e3ea;
+      --ink:#1b1b1f;
+      --muted:#6b6b76;
+
+      /* PMS 116 C-ish */
+      --gold:#FFCD00;
+      --gold-border:#d7a900;
+
+      /* light yellow for +/- buttons */
+      --butter:#FFEFAD;
+      --butter-border:#E6D48A;
+      --butter-hover:#FFE68A;
+
+      --blue:#0a64dc;
+      --blue-hover:#084fb0;
+
+      /* green enharmonic */
+      --green:#2f7d55;
+      --green-hover:#256646;
+
+      --radius:12px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin:0;
+      padding:10px;
+      background:var(--bg);
+      color:var(--ink);
+      font-weight:400;
+    }
+
+    /* ---------- Reusable card ---------- */
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:8px 10px;
+    }
+
+    /* ---------- Buttons ---------- */
+    button{
+      border:none;
+      border-radius:10px;
+      padding:8px 10px;
+      font-size:.96rem;
+      cursor:pointer;
+      transition:background-color 120ms ease, opacity 120ms ease, transform 60ms ease, box-shadow 120ms ease;
+      user-select:none;
+      font-weight:400;
+      line-height:1;
+      white-space:nowrap;
+    }
+    button:active{transform:translateY(.5px)}
+    button[disabled]{opacity:.6;cursor:not-allowed}
+
+    .btn-gold{
+      background:var(--gold);
+      color:#2d2300;
+      border:1px solid var(--gold-border);
+    }
+    .btn-gold:hover{background:#ffd633}
+
+    .btn-lite{
+      background:var(--butter);
+      color:#3b2f00;
+      border:1px solid var(--butter-border);
+    }
+    .btn-lite:hover{background:var(--butter-hover)}
+
+    .btn-blue{
+      background:var(--blue);
+      color:#fff;
+      border:1px solid rgba(0,0,0,.06);
+    }
+    .btn-blue:hover{background:var(--blue-hover)}
+
+    .miniBtn{
+      padding:6px 10px;
+      border-radius:10px;
+      font-size:.92rem;
+      min-width:40px;
+      text-align:center;
+    }
+
+    /* Pill "3D" style (used for New Tune) */
+    .pill3d{
+      border-radius:999px;
+      padding:10px 16px;
+      box-shadow:
+        0 2px 0 rgba(160,120,0,.55),
+        0 10px 20px rgba(0,0,0,.08);
+    }
+    .pill3d:hover{
+      box-shadow:
+        0 2px 0 rgba(160,120,0,.55),
+        0 12px 24px rgba(0,0,0,.10);
+    }
+    .pill3d:active{
+      transform: translateY(1px);
+      box-shadow:
+        0 1px 0 rgba(160,120,0,.55),
+        0 6px 14px rgba(0,0,0,.10);
+    }
+
+    /* Green pill 3D for enharmonic */
+    .btn-green-pill{
+      background:var(--green);
+      color:#fff;
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:999px;
+      padding:10px 16px;
+      box-shadow:
+        0 2px 0 rgba(30,76,53,.85),
+        0 10px 20px rgba(0,0,0,.08);
+    }
+    .btn-green-pill:hover{
+      background:var(--green-hover);
+      box-shadow:
+        0 2px 0 rgba(30,76,53,.85),
+        0 12px 24px rgba(0,0,0,.10);
+    }
+    .btn-green-pill:active{
+      transform: translateY(1px);
+      box-shadow:
+        0 1px 0 rgba(30,76,53,.85),
+        0 6px 14px rgba(0,0,0,.10);
+    }
+
+    .tool-btn{
+      padding:5px 8px;
+      font-size:.85rem;
+      border-radius:10px;
+      background:var(--butter);
+      color:#3b2f00;
+      border:1px solid var(--butter-border);
+      cursor:pointer;
+      font-weight:400;
+      line-height:1;
+    }
+    .tool-btn:hover{background:var(--butter-hover)}
+
+    /* small grey reset button */
+    .reset-btn{
+      padding:5px 8px;
+      font-size:.85rem;
+      border-radius:10px;
+      background:#ececf1;
+      color:#4a4a55;
+      border:1px solid #d2d2dc;
+      cursor:pointer;
+      font-weight:400;
+      line-height:1;
+    }
+    .reset-btn:hover{background:#e3e3eb}
+
+    /* ---------- Row 1: New Tune + status chips ---------- */
+    #row1{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:8px;
+    }
+
+    #randomBtn{ min-width:110px; }
+
+    /* Enharmonic same size as New Tune */
+    #enharmonicBtn{ min-width:110px; }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:#fff;
+      white-space:nowrap;
+      width:auto;
+      max-width:100%;
+      font-weight:400;
+      font-size:.95rem;
+    }
+    .chip .label{color:var(--muted)}
+    .titleLabel{font-weight:600;} /* only "Title" bold */
+    .valueOnly{
+      color:var(--ink);
+      max-width:65vw;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .pillRow{display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center}
+    .pill{
+      display:inline-block;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--ink);
+      font-size:.9rem;
+      font-weight:400;
+      white-space:nowrap;
+      line-height:1.1;
+    }
+    .pill.active{
+      background:var(--butter);
+      border-color:var(--butter-border);
+      color:#3b2f00;
+    }
+
+    /* ---------- Row 2: Music + watermark ---------- */
+    #viewerWrap{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      overflow:hidden;
+      margin-bottom:8px;
+    }
+    #viewer{
+      padding:8px 12px 4px;
+      min-height:120px;
+      overflow-x:hidden;
+      overflow-y:auto;
+      display:block;
+      position:relative;
+      overscroll-behavior-x:contain;
+      max-height:unset; /* set dynamically after render */
+    }
+    #svg{display:block}
+    #svg svg{display:block;width:auto;height:auto;margin:0}
+    #musicFooter{
+      border-top:1px solid var(--border);
+      padding:6px 12px;
+      font-size:.82rem;
+      color:#9aa0aa;
+      text-align:left;
+      user-select:none;
+      background:#fff;
+    }
+
+    /* ---------- Row 3: compartments ---------- */
+    #row3{
+      display:flex;
+      gap:10px;
+      align-items:stretch;
+      margin-bottom:8px;
+      flex-wrap:wrap;
+    }
+
+    /* Key range compact */
+    #keyRangeCard{
+      width:260px;
+      min-width:260px;
+      padding:8px 10px;
+    }
+    .keyRangeHeader{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin-bottom:6px;
+      font-size:.95rem;
+      color:var(--ink);
+    }
+    .keyRangeGrid{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0,1fr));
+      gap:6px;
+    }
+    .range-btn{
+      padding:6px 8px;
+      font-size:.88rem;
+      border-radius:10px;
+      background:#f3f3f8;
+      color:#333;
+      border:1px solid var(--border);
+      font-weight:400;
+      line-height:1;
+      width:100%;
+    }
+    .range-btn:hover{background:#ececf5}
+    .range-btn.active{
+      background:var(--gold);
+      color:#2d2300;
+      border:1px solid var(--gold-border);
+    }
+    .keyRangeToolsBottom{
+      display:flex;
+      gap:8px;
+      margin-top:8px;
+      flex-wrap:wrap;
+    }
+
+    /* Scale/Spacing fixed width */
+    #stackCol{
+      margin-left:0;
+      width:320px;
+      min-width:320px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .sliderHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:6px;
+      flex-wrap:wrap;
+      font-size:.95rem;
+      color:var(--ink);
+    }
+    .badge{
+      padding:3px 9px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:#fff;
+      color:#222;
+      white-space:nowrap;
+      font-size:.88rem;
+      font-weight:400;
+    }
+    input[type="range"]{
+      width:100%;
+      accent-color:var(--gold);
+      margin:0;
+    }
+
+    /* Transpose+Octave stack */
+    .miniStackCard{
+      width:260px;
+      min-width:260px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      padding:8px 10px;
+    }
+    .stackTitle{
+      font-size:.92rem;
+      color:var(--muted);
+    }
+    .stackRow{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:nowrap;
+    }
+    .stackRow.wrap{ flex-wrap:wrap; }
+
+    /* Tune catalog link underlined */
+    #catalogLink{
+      color:var(--blue);
+      text-decoration:underline;
+      font-size:.95rem;
+      line-height:1.25;
+      white-space:normal;
+      font-weight:400;
+      margin-top:2px;
+      display:inline-block;
+    }
+    #catalogLink:hover{color:var(--blue-hover);}
+
+    @media (max-width: 980px){
+      #keyRangeCard{width:100%; min-width:0}
+      #stackCol{width:100%; min-width:0}
+      .miniStackCard{width:100%; min-width:0}
+    }
+
+    /* ---------- Filters ---------- */
+    details#filtersCard{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:8px 10px;
+    }
+    details#filtersCard > summary{
+      cursor:pointer;
+      list-style:none;
+      padding:6px 4px;
+      border-radius:10px;
+      user-select:none;
+      font-weight:400;
+    }
+    details#filtersCard > summary::-webkit-details-marker{display:none}
+    details#filtersCard[open] > summary{background:#f3f3f8}
+
+    #optionsBar{
+      display:flex;
+      align-items:flex-start;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:8px;
+      padding-bottom:2px;
+    }
+
+    fieldset.panel{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:8px 10px;
+      display:inline-flex;
+      align-items:flex-start;
+      gap:10px;
+      font-weight:400;
+    }
+
+    /* legend: put tools directly to the right of the title */
+    fieldset.panel legend{
+      font-size:.95rem;
+      padding:0 6px;
+      color:var(--ink);
+      font-weight:400;
+      display:flex;
+      align-items:center;
+      justify-content:flex-start; /* changed */
+      gap:8px;                  /* changed */
+      width:100%;
+      white-space:nowrap;
+    }
+    .panel-tools{
+      display:inline-flex;
+      gap:6px;
+      vertical-align:middle;
+      margin-left:0;            /* direct adjacency */
+    }
+
+    #exPanel{flex-basis:100%}
+    .row{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+    /* Reserve legend height for mmPanel too (no visible buttons) */
+    .ghost-tools{ visibility:hidden; }
+
+    .chk-label{
+      display:inline-flex;align-items:center;gap:6px;font-size:.95rem;
+      padding:3px 8px;border-radius:10px;border:1px solid var(--border);background:#fff;
+      transition:background-color 120ms ease,border-color 120ms ease;
+      font-weight:400;
+      white-space:nowrap;
+    }
+    .chk-label input[type="checkbox"],.chk-label input[type="radio"]{
+      appearance:none;width:14px;height:14px;border-radius:3px;border:1px solid #666;
+      position:relative;margin-right:2px;background:#fff;
+      transition:background-color 120ms ease,border-color 120ms ease,box-shadow 120ms ease
+    }
+    .chk-label input[type="checkbox"]::after,.chk-label input[type="radio"]::after{
+      content:"";position:absolute;inset:3px;border-radius:2px;background:#333;opacity:0;transition:opacity 120ms ease
+    }
+    .chk-label input[type="checkbox"]:checked,.chk-label input[type="radio"]:checked{
+      background:var(--gold);border-color:var(--gold-border);box-shadow:0 0 0 2px rgba(255,205,0,.18)
+    }
+    .chk-label input[type="checkbox"]:checked::after,.chk-label input[type="radio"]:checked::after{opacity:1}
+    .chk-label span{padding:0 4px;border-radius:6px;border:1px solid transparent;color:#222;background:transparent}
+
+    #mmRow{gap:10px; justify-content:flex-start}
+
+    /* ---------- Logo ---------- */
+    #logoAfterFilters{
+      margin-top:10px;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      width:100%;
+    }
+    #logoAfterFilters img{
+      width:100%;
+      max-width:560px;
+      height:auto;
+      display:block;
+      opacity:.98;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Row 1 -->
+  <div id="row1">
+    <button id="randomBtn" class="btn-gold pill3d" type="button" disabled>New Tune</button>
+
+    <span class="chip" title="Current title">
+      <span class="titleLabel">Title</span>
+      <span id="titleValue" class="valueOnly">—</span>
+    </span>
+
+    <span class="chip" title="Current key">
+      <span class="label">Key</span>
+      <span id="statusKey" class="value">—</span>
+    </span>
+
+    <span class="chip" title="Collections for this tune">
+      <span class="label">Collection</span>
+      <span class="value">
+        <span id="collectionPills" class="pillRow" aria-label="Collections for this tune"></span>
+      </span>
+    </span>
+  </div>
+
+  <!-- Row 2 -->
+  <div id="viewerWrap">
+    <div id="viewer"><div id="svg"></div></div>
+    <div id="musicFooter">created for the University of Iowa Organ Studio</div>
+  </div>
+
+  <!-- Row 3 -->
+  <div id="row3">
+    <!-- 1) Key range -->
+    <div class="card" id="keyRangeCard">
+      <div class="keyRangeHeader">Key range</div>
+      <div class="keyRangeGrid" id="keysRangeRowTop"></div>
+      <div style="height:6px"></div>
+      <div class="keyRangeGrid" id="keysRangeRowBottom"></div>
+      <div class="keyRangeToolsBottom">
+        <button class="tool-btn" type="button" id="keysAllBtn"  title="Select all key ranges">select all</button>
+        <button class="tool-btn" type="button" id="keysNoneBtn" title="Select no key ranges">select none</button>
+      </div>
+    </div>
+
+    <!-- 2) Scale / Spacing stack -->
+    <div id="stackCol">
+      <div class="card">
+        <div class="sliderHeader">
+          <div>Scale</div>
+          <div style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <button id="scaleResetBtn" class="reset-btn" type="button" disabled title="Reset scale to default">reset</button>
+            <button id="musicMinusBtn" class="miniBtn btn-lite" type="button" disabled title="Decrease scale">–</button>
+            <button id="musicPlusBtn"  class="miniBtn btn-lite" type="button" disabled title="Increase scale">+</button>
+            <span id="scaleBadge" class="badge">—</span>
+          </div>
+        </div>
+        <input id="scaleSlider" type="range" min="30" max="200" step="2" value="44" />
+      </div>
+
+      <div class="card">
+        <div class="sliderHeader">
+          <div>Spacing</div>
+          <div style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <button id="spacingResetBtn" class="reset-btn" type="button" disabled title="Reset spacing to default">reset</button>
+            <button id="spacingMinusBtn" class="miniBtn btn-lite" type="button" disabled title="Decrease spacing">–</button>
+            <button id="spacingPlusBtn"  class="miniBtn btn-lite" type="button" disabled title="Increase spacing">+</button>
+            <span id="spacingBadge" class="badge">—</span>
+          </div>
+        </div>
+        <input id="spacingSlider" type="range" min="0.20" max="0.35" step="0.01" value="0.22" />
+      </div>
+    </div>
+
+    <!-- 3) Transpose stack with Enharmonic to the right of Transpose; Octave below -->
+    <div class="card miniStackCard" id="xposeOctCard">
+      <div class="stackTitle">Transpose</div>
+      <div class="stackRow wrap">
+        <button id="halfDownBtn" class="miniBtn btn-lite" type="button" disabled title="Transpose down a semitone">–</button>
+        <button id="halfUpBtn"   class="miniBtn btn-lite" type="button" disabled title="Transpose up a semitone">+</button>
+
+        <button id="enharmonicBtn" class="btn-green-pill" type="button" disabled
+          title="Toggle enharmonic spelling (C#/Db, D#/Eb, F#/Gb, G#/Ab, A#/Bb)">♯/♭</button>
+      </div>
+
+      <div class="stackTitle" style="margin-top:10px;">Octave</div>
+      <div class="stackRow">
+        <button id="octDownBtn" class="miniBtn btn-lite" type="button" disabled title="Transpose down an octave">–</button>
+        <button id="octUpBtn"   class="miniBtn btn-lite" type="button" disabled title="Transpose up an octave">+</button>
+      </div>
+    </div>
+
+    <!-- (Tune Catalog compartment removed entirely) -->
+  </div>
+
+  <!-- Filters -->
+  <details id="filtersCard">
+    <summary>Filters</summary>
+
+    <div id="optionsBar">
+      <fieldset class="panel" id="exPanel">
+        <legend>
+          <span>Exclude</span>
+          <span class="panel-tools">
+            <button class="tool-btn" type="button" id="exAllBtn"  title="Exclude all tonics">select all</button>
+            <button class="tool-btn" type="button" id="exNoneBtn" title="Exclude none">select none</button>
+          </span>
+        </legend>
+        <div class="row" id="exRow"></div>
+      </fieldset>
+
+      <fieldset class="panel" id="mmPanel">
+        <legend>
+          <span>Major / Minor</span>
+          <span class="panel-tools ghost-tools">
+            <button class="tool-btn" type="button">select all</button>
+            <button class="tool-btn" type="button">select none</button>
+          </span>
+        </legend>
+        <div class="row" id="mmRow"></div>
+      </fieldset>
+
+      <fieldset class="panel" id="meterPanel">
+        <legend>
+          <span>Meter</span>
+          <span class="panel-tools">
+            <button class="tool-btn" type="button" id="meterAllBtn"  title="Select all meters">select all</button>
+            <button class="tool-btn" type="button" id="meterNoneBtn" title="Select none">select none</button>
+          </span>
+        </legend>
+        <div class="row" id="meterRow"></div>
+      </fieldset>
+
+      <fieldset class="panel" id="colPanel">
+        <legend>
+          <span>Collection</span>
+          <span class="panel-tools">
+            <button class="tool-btn" type="button" id="colAllBtn"  title="Select all collections">select all</button>
+            <button class="tool-btn" type="button" id="colNoneBtn" title="Select none">select none</button>
+          </span>
+        </legend>
+        <div class="row" id="colRow"></div>
+      </fieldset>
+    </div>
+  </details>
+
+  <!-- Tune Catalog link (still always visible, no title) -->
+  <div style="margin-top:8px;">
+    <a id="catalogLink" href="catalog.html">Tune Catalog — create custom “My Collection”</a>
+  </div>
+
+  <!-- Logo directly after filters -->
+  <div id="logoAfterFilters" aria-label="University of Iowa Organ Studio logo">
+    <img src="Organ-Studio-LockupStacked-RGB.svg" alt="University of Iowa School of Music">
+  </div>
+
+  <script>
+    const MY_LABEL = "My Collection";
+    const MY_KEY = "tuneCatalog.myCollection.v1";
+
+    function getMyCollectionSet(){
+      try{
+        const raw = localStorage.getItem(MY_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(arr) ? arr : []);
+      }catch{
+        return new Set();
+      }
+    }
+
+    let tuneFiles = [];
+    const accidentalsSelected = new Set([0,1,2,3,4,5,6,7]);
+    const labelFor = k => k.replace(/#/g,"♯").replace(/b/g,"♭");
+
+    const majorMinorVals   = ["Major", "Minor"];
+    const excludeTonics    = ["C","C#","Db","D","D#","Eb","E","F","F#","Gb","G","G#","Ab","A","A#","Bb","B","Cb"];
+
+    let vrvToolkit = null;
+    let currentFile = null;
+
+    let currentTargetKey = "";
+    let currentMode = "";
+    let originalTonic = "";
+
+    let octaveShift = 0;
+
+    const ENHARMONIC_MAP = {
+      "C#":"Db", "Db":"C#",
+      "D#":"Eb", "Eb":"D#",
+      "F#":"Gb", "Gb":"F#",
+      "G#":"Ab", "Ab":"G#",
+      "A#":"Bb", "Bb":"A#"
+    };
+
+    const originalMeiCache = {};
+    const metadataCache    = {};
+
+    const METADATA_CACHE_VERSION = 7;
+
+    let currentTuneCollections = [];
+    let currentTuneIsMine = false;
+
+    let lastRenderReason = "init";
+    let lastGoodPageWidth = null;
+
+   const baseOptions = {
+  scale: 44,
+
+  pageWidth: 900,
+  pageHeight: 2000,
+  adjustPageHeight: true,
+
+  pageMarginLeft: 12,
+  pageMarginRight: 12,
+  pageMarginTop: 18,
+  pageMarginBottom: 18,
+
+  spacingSystem: 10,
+  spacingStaff: 8,
+
+  spacingLinear: 0.22,
+  spacingNonLinear: 0.46,
+
+  noJustification: true,
+  justifyVertically: false,
+
+  breaks: "auto"
+};
+
+    /* Defaults for reset buttons */
+    const DEFAULT_SCALE = 44;
+    const DEFAULT_SPACING_LINEAR = 0.22;
+
+    const SCALE_MIN = 30;
+    const SCALE_MAX = 200;
+    const SCALE_STEP = 2;
+
+    const SPACING_MIN = 0.20;
+    const SPACING_MAX = 0.35;
+    const SPACING_STEP = 0.01;
+
+    // Keep non-linear spacing proportional to linear spacing
+    const SPACING_RATIO = baseOptions.spacingNonLinear / baseOptions.spacingLinear;
+
+    function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+
+    function debounce(fn, delay = 120) {
+      let t = null;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), delay);
+      };
+    }
+
+   
+
+    function clearRow(containerId) {
+      const row = document.getElementById(containerId);
+      while (row.firstChild) row.removeChild(row.firstChild);
+    }
+
+    function setAllCheckboxes(containerId, checked) {
+      document.querySelectorAll(`#${containerId} input[type="checkbox"]`).forEach(el => {
+        if (!el.disabled) el.checked = !!checked;
+      });
+    }
+
+    function addPlainCheckboxes(containerId, values, defaultChecked = true, labelTransform = null) {
+      const row = document.getElementById(containerId);
+      values.forEach(val => {
+        const id = `${containerId}_${String(val).replace(/[^A-Za-z0-9]/g,'_')}`;
+        const label = document.createElement('label');
+        label.className = 'chk-label';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.id = id; cb.value = val; cb.checked = defaultChecked;
+        const span = document.createElement('span');
+        span.textContent = labelTransform ? labelTransform(val) : val;
+        label.appendChild(cb); label.appendChild(span);
+        row.appendChild(label);
+      });
+    }
+
+    function getChecked(containerId) {
+      const out = [];
+      document.querySelectorAll(`#${containerId} input[type="checkbox"], #${containerId} input[type="radio"]`)
+        .forEach(el => { if (el.checked) out.push(el.value); });
+      return out;
+    }
+
+    function getCheckedCollectionSetFromUI(){
+      return new Set(
+        Array.from(document.querySelectorAll('#colRow input[type="checkbox"]'))
+          .filter(el => !el.disabled && el.checked)
+          .map(el => String(el.value || "").trim())
+          .filter(Boolean)
+      );
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function renderCurrentTuneCollectionPills(){
+      const host = document.getElementById('collectionPills');
+      if (!host) return;
+
+      const checked = getCheckedCollectionSetFromUI();
+
+      const set = new Set((currentTuneCollections || []).map(x => String(x || "").trim()).filter(Boolean));
+      if (currentTuneIsMine) set.add(MY_LABEL);
+
+      let list = Array.from(set);
+      list.sort((a,b) => a.localeCompare(b, undefined, { sensitivity:"base", numeric:true }));
+
+      if (currentTuneIsMine && checked.has(MY_LABEL)) {
+        list = [MY_LABEL, ...list.filter(x => x !== MY_LABEL)];
+      }
+
+      if (list.length === 0) {
+        host.innerHTML = `<span class="pill">—</span>`;
+        return;
+      }
+
+      host.innerHTML = list.map(name => {
+        const active = checked.has(name) ? " active" : "";
+        return `<span class="pill${active}">${escapeHtml(name)}</span>`;
+      }).join("");
+    }
+
+    function wireCollectionStatusUpdates(){
+      document.querySelectorAll('#colRow input[type="checkbox"]').forEach(el => {
+        el.addEventListener('change', () => renderCurrentTuneCollectionPills());
+      });
+      renderCurrentTuneCollectionPills();
+    }
+
+    const keyRangeButtons = new Map();
+
+    function addAccidentalRangeButtons(topId, bottomId) {
+      const top = document.getElementById(topId);
+      const bot = document.getElementById(bottomId);
+
+      for (let n = 0; n <= 7; n++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'range-btn' + (accidentalsSelected.has(n) ? ' active' : '');
+        btn.textContent = `${n}#/${n}♭`;
+        btn.title = `Include keys with exactly ${n} accidentals (sharp OR flat)`;
+        btn.addEventListener('click', () => {
+          if (accidentalsSelected.has(n)) { accidentalsSelected.delete(n); btn.classList.remove('active'); }
+          else { accidentalsSelected.add(n); btn.classList.add('active'); }
+        });
+
+        (n <= 3 ? top : bot).appendChild(btn);
+        keyRangeButtons.set(n, btn);
+      }
+    }
+
+    function keyRangeSelectAll() {
+      for (let n = 0; n <= 7; n++) accidentalsSelected.add(n);
+      for (let n = 0; n <= 7; n++) keyRangeButtons.get(n)?.classList.add('active');
+    }
+    function keyRangeSelectNone() {
+      accidentalsSelected.clear();
+      for (let n = 0; n <= 7; n++) keyRangeButtons.get(n)?.classList.remove('active');
+    }
+
+    function addExcludeCheckboxes(containerId, values) {
+      const row = document.getElementById(containerId);
+      values.forEach(val => {
+        const id = `${containerId}_${String(val).replace(/[^A-Za-z0-9]/g,'_')}`;
+        const label = document.createElement('label');
+        label.className = 'chk-label';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.id = id; cb.value = val; cb.checked = false;
+        const span = document.createElement('span'); span.textContent = labelFor(val);
+        label.appendChild(cb); label.appendChild(span);
+        row.appendChild(label);
+      });
+    }
+
+    function updateScaleBadge() {
+      const badge = document.getElementById('scaleBadge');
+      if (badge) {
+        badge.textContent = String(baseOptions.scale);      // numbers only
+        badge.title = `Scale: ${baseOptions.scale}`;
+      }
+      const slider = document.getElementById('scaleSlider');
+      if (slider) slider.value = String(baseOptions.scale);
+    }
+
+    function updateSpacingBadge() {
+      const badge = document.getElementById('spacingBadge');
+      if (badge) {
+        const lin = baseOptions.spacingLinear.toFixed(2);
+        badge.textContent = lin;                            // numbers only
+        badge.title = `Spacing: ${lin}`;
+      }
+      const slider = document.getElementById('spacingSlider');
+      if (slider) slider.value = String(baseOptions.spacingLinear.toFixed(2));
+    }
+
+    function musicSizeChange(delta) {
+      const next = clamp(baseOptions.scale + delta, SCALE_MIN, SCALE_MAX);
+      if (next !== baseOptions.scale) {
+        baseOptions.scale = next;
+        lastRenderReason = "scale";
+        renderCurrent();
+      }
+      updateScaleBadge();
+    }
+
+    function spacingChange(delta) {
+      const nextLinear = clamp(baseOptions.spacingLinear + delta, SPACING_MIN, SPACING_MAX);
+      const nextNonLinear = nextLinear * SPACING_RATIO;
+
+      if (nextLinear !== baseOptions.spacingLinear || nextNonLinear !== baseOptions.spacingNonLinear) {
+        baseOptions.spacingLinear = nextLinear;
+        baseOptions.spacingNonLinear = nextNonLinear;
+        lastRenderReason = "spacing";
+        renderCurrent();
+      }
+      updateSpacingBadge();
+    }
+
+    function spacingSetFromSlider(newLinear){
+      const lin = clamp(Number(newLinear), SPACING_MIN, SPACING_MAX);
+      const non = lin * SPACING_RATIO;
+      if (lin !== baseOptions.spacingLinear || non !== baseOptions.spacingNonLinear){
+        baseOptions.spacingLinear = lin;
+        baseOptions.spacingNonLinear = non;
+        lastRenderReason = "spacing";
+        renderCurrent();
+      }
+      updateSpacingBadge();
+    }
+
+    function scaleSetFromSlider(newScale){
+      const sc = clamp(Number(newScale), SCALE_MIN, SCALE_MAX);
+      if (sc !== baseOptions.scale){
+        baseOptions.scale = sc;
+        lastRenderReason = "scale";
+        renderCurrent();
+      }
+      updateScaleBadge();
+    }
+
+    function resetScale(){
+      if (baseOptions.scale !== DEFAULT_SCALE){
+        baseOptions.scale = DEFAULT_SCALE;
+        lastRenderReason = "scale";
+        renderCurrent();
+      }
+      updateScaleBadge();
+    }
+
+    function resetSpacing(){
+      const lin = DEFAULT_SPACING_LINEAR;
+      const non = lin * SPACING_RATIO;
+      if (baseOptions.spacingLinear !== lin || baseOptions.spacingNonLinear !== non){
+        baseOptions.spacingLinear = lin;
+        baseOptions.spacingNonLinear = non;
+        lastRenderReason = "spacing";
+        renderCurrent();
+      }
+      updateSpacingBadge();
+    }
+
+    async function fetchMei(fileName) {
+      if (!originalMeiCache[fileName]) {
+        const res = await fetch(fileName, { cache: 'no-cache' });
+        if (!res.ok) throw new Error(`Failed to fetch ${fileName}: ${res.status}`);
+        originalMeiCache[fileName] = await res.text();
+      }
+      return originalMeiCache[fileName];
+    }
+
+  function parseHumdrumMetadata(humdrumText) {
+  const md = {
+    keyMode: "",
+    keyTonic: "",
+    meterSig: "",
+    collection: "",
+    collections: [],
+    title: ""
+  };
+
+  const lines = String(humdrumText || "").split(/\r?\n/);
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    if (line.startsWith("!!!OTL:")) {
+      const title = line.slice(7).trim();
+      if (title) md.title = title;
+      continue;
+    }
+
+    if (line.startsWith("!!!COL:")) {
+      const c = line.slice(7).trim();
+      if (c) {
+        md.collections.push(c);
+        if (!md.collection) md.collection = c;
+      }
+      continue;
+    }
+
+    const tokens = rawLine.split("\t");
+    for (const tokRaw of tokens) {
+      const tok = tokRaw.trim();
+      if (!tok) continue;
+
+      if (!md.keyTonic) {
+        const km = tok.match(/^\*([A-Ga-g])([#b-])?:$/);
+        if (km) {
+          const tonicLetter = km[1].toUpperCase();
+          const acc = km[2] || "";
+          md.keyTonic =
+            tonicLetter +
+            (acc === "-" ? "b" : acc === "b" ? "b" : acc === "#" ? "#" : "");
+          md.keyMode = (km[1] === km[1].toLowerCase()) ? "minor" : "major";
+          continue;
+        }
+      }
+
+      if (!md.meterSig) {
+        const mm = tok.match(/^\*M(\d+)\/(\d+)$/i);
+        if (mm) {
+          md.meterSig = `${mm[1]}/${mm[2]}`;
+          continue;
+        }
+      }
+    }
+  }
+
+  md.collections = Array.from(new Set(md.collections));
+  return md;
+}
+
+function stripHumdrumDisplayTitle(humdrumText) {
+  return String(humdrumText || "")
+    .split(/\r?\n/)
+    .filter(line => !/^!!!OTL:/.test(line))
+    .join("\n");
+}
+
+async function getMetadata(fileName) {
+  const cached = metadataCache[fileName];
+  if (cached && cached.__v === METADATA_CACHE_VERSION) return cached;
+
+  const krnText = await fetchMei(fileName);
+  const parsed = parseHumdrumMetadata(krnText);
+
+  const out = {
+    keyMode: parsed.keyMode || "",
+    keyTonic: parsed.keyTonic || "",
+    meterSig: parsed.meterSig || "",
+    collection: parsed.collection || "",
+    collections: parsed.collections || [],
+    title: parsed.title || "",
+    __v: METADATA_CACHE_VERSION
+  };
+
+  metadataCache[fileName] = out;
+  return out;
+}
+   
+    
+
+    async function buildCollectionsUIFromAllTunes() {
+      clearRow("colRow");
+      addPlainCheckboxes("colRow", [MY_LABEL], false);
+
+      const set = new Set();
+      for (const f of tuneFiles) {
+        try {
+          const md = await getMetadata(f);
+          const cols = (md.collections && md.collections.length) ? md.collections : (md.collection ? [md.collection] : []);
+          cols.forEach(c => set.add(c));
+        } catch (e) {}
+      }
+
+      const list = Array.from(set).sort((a,b) => a.localeCompare(b, undefined, { sensitivity:"base", numeric:true }));
+      if (list.length > 0) addPlainCheckboxes("colRow", list, true);
+
+      wireCollectionStatusUpdates();
+    }
+
+    async function buildMetersUIFromAllTunes() {
+      clearRow("meterRow");
+      const set = new Set();
+      for (const f of tuneFiles) {
+        try {
+          const md = await getMetadata(f);
+          if (md.meterSig) set.add(md.meterSig);
+        } catch (e) {}
+      }
+
+      const list = Array.from(set).sort((a,b) => {
+        const am = a.match(/^(\d+)\/(\d+)$/);
+        const bm = b.match(/^(\d+)\/(\d+)$/);
+        if (am && bm) {
+          const ac = Number(am[1]), au = Number(am[2]);
+          const bc = Number(bm[1]), bu = Number(bm[2]);
+          if (ac !== bc) return ac - bc;
+          return au - bu;
+        }
+        return a.localeCompare(b, undefined, { sensitivity:"base", numeric:true });
+      });
+
+      if (list.length === 0) {
+        addPlainCheckboxes("meterRow", ["(no meters found)"], true);
+        const el = document.querySelector(`#meterRow input[type="checkbox"]`);
+        if (el) el.disabled = true;
+        return;
+      }
+      addPlainCheckboxes("meterRow", list, true);
+    }
+
+ 
+
+    const KEY_DB = {
+      major: [
+        { tonic:"C",  n:0, t:"none" },
+        { tonic:"G",  n:1, t:"s" },
+        { tonic:"D",  n:2, t:"s" },
+        { tonic:"A",  n:3, t:"s" },
+        { tonic:"E",  n:4, t:"s" },
+        { tonic:"B",  n:5, t:"s" },
+        { tonic:"F#", n:6, t:"s" },
+        { tonic:"C#", n:7, t:"s" },
+        { tonic:"F",  n:1, t:"f" },
+        { tonic:"Bb", n:2, t:"f" },
+        { tonic:"Eb", n:3, t:"f" },
+        { tonic:"Ab", n:4, t:"f" },
+        { tonic:"Db", n:5, t:"f" },
+        { tonic:"Gb", n:6, t:"f" },
+        { tonic:"Cb", n:7, t:"f" }
+      ],
+      minor: [
+        { tonic:"A",  n:0, t:"none" },
+        { tonic:"E",  n:1, t:"s" },
+        { tonic:"B",  n:2, t:"s" },
+        { tonic:"F#", n:3, t:"s" },
+        { tonic:"C#", n:4, t:"s" },
+        { tonic:"G#", n:5, t:"s" },
+        { tonic:"D#", n:6, t:"s" },
+        { tonic:"A#", n:7, t:"s" },
+        { tonic:"D",  n:1, t:"f" },
+        { tonic:"G",  n:2, t:"f" },
+        { tonic:"C",  n:3, t:"f" },
+        { tonic:"F",  n:4, t:"f" },
+        { tonic:"Bb", n:5, t:"f" },
+        { tonic:"Eb", n:6, t:"f" },
+        { tonic:"Ab", n:7, t:"f" }
+      ]
+    };
+
+    function keyInfo(tonic, mode){
+      const m = (mode === "minor") ? "minor" : "major";
+      return KEY_DB[m].find(k => k.tonic === tonic) || null;
+    }
+
+
+    function relativeMajorForMinorTonic(minorTonic){
+      const mi = keyInfo(minorTonic, "minor");
+      if (!mi) return "C";
+      const maj = KEY_DB.major.find(k => k.n === mi.n && k.t === mi.t);
+      return maj ? maj.tonic : "C";
+    }
+
+    function tonicsByAccidentalsSelected(mode, selectedSet){
+      const m = (mode === "minor") ? "minor" : "major";
+      return KEY_DB[m].filter(k => selectedSet.has(k.n)).map(k => k.tonic);
+    }
+
+    const PC = {
+      "C":0,"C#":1,"Db":1,"D":2,"D#":3,"Eb":3,"E":4,"F":5,"F#":6,"Gb":6,
+      "G":7,"G#":8,"Ab":8,"A":9,"A#":10,"Bb":10,"B":11,"Cb":11
+    };
+
+    function candidatesForPC(pc, mode){
+      const m = (mode === "minor") ? "minor" : "major";
+      const want = ((pc%12)+12)%12;
+      return KEY_DB[m].filter(k => PC[k.tonic] === want).map(k => k.tonic);
+    }
+
+    function preferSpellingFromCurrent(pc, mode, currentTonic){
+      const cands = candidatesForPC(pc, mode);
+      if (cands.length === 0) return (mode === "minor") ? "A" : "C";
+      if (cands.length === 1) return cands[0];
+
+      const wantsSharp = (currentTonic || "").includes("#");
+      const wantsFlat  = (currentTonic || "").includes("b");
+      if (wantsSharp) {
+        const s = cands.find(x => x.includes("#"));
+        if (s) return s;
+      }
+      if (wantsFlat) {
+        const f = cands.find(x => x.includes("b"));
+        if (f) return f;
+      }
+      return cands.find(x => x.includes("#")) || cands[0];
+    }
+
+   
+
+    function tonicToVerovioTransposeTonic(tonic) {
+      const m = String(tonic || "").match(/^([A-Ga-g])([#bB])?$/);
+      if (!m) return "";
+      const pname = m[1].toLowerCase();
+      let acc = (m[2] || "");
+      if (acc === "B") acc = "b";
+      const accid = acc === "#" ? "s" : acc === "b" ? "f" : "";
+      return pname + accid;
+    }
+
+    function computeTransposeOption() {
+      if (!currentTargetKey) return "";
+      const mode = (currentMode === "minor") ? "minor" : "major";
+      const tonicForVerovio = (mode === "minor")
+        ? relativeMajorForMinorTonic(currentTargetKey)
+        : currentTargetKey;
+
+      const tonicParam = tonicToVerovioTransposeTonic(tonicForVerovio);
+      if (!tonicParam) return "";
+
+      const prefix = octaveShift > 0 ? "+".repeat(octaveShift)
+                   : octaveShift < 0 ? "-".repeat(-octaveShift)
+                   : "";
+
+      return prefix + tonicParam;
+    }
+
+
+    function viewerAvailableWidth(){
+      const viewer = document.getElementById('viewer');
+      if (!viewer) return 800;
+      const rect = viewer.getBoundingClientRect();
+      const w = Math.floor(rect.width || viewer.clientWidth || 0);
+      return Math.max(340, w);
+    }
+
+    function svgIntrinsicWidthPx(){
+      const svg = document.querySelector('#svg svg');
+      if (!svg) return 0;
+      const wAttr = svg.getAttribute('width') || "";
+      const w = parseFloat(wAttr);
+      if (Number.isFinite(w) && w > 0) return w;
+      try{
+        const box = svg.getBBox();
+        return box.width || 0;
+      }catch{
+        return 0;
+      }
+    }
+
+    async function renderWithPageWidth(pw, meiData){
+      const options = {
+        ...baseOptions,
+        pageWidth: pw,
+        transpose: computeTransposeOption()
+      };
+      vrvToolkit.setOptions(options);
+      vrvToolkit.loadData(meiData);
+      const svgStr = vrvToolkit.renderToSVG(1, {});
+      document.getElementById('svg').innerHTML = svgStr;
+
+      requestAnimationFrame(() => {
+        const viewer = document.getElementById('viewer');
+        const svgEl = document.querySelector('#svg svg');
+        if (!viewer || !svgEl) return;
+
+        const hAttr = parseFloat(svgEl.getAttribute('height') || "0");
+        if (Number.isFinite(hAttr) && hAttr > 0) {
+          viewer.style.maxHeight = Math.max(170, Math.ceil(hAttr + 14)) + "px";
+        } else {
+          viewer.style.maxHeight = "";
+        }
+      });
+    }
+
+    async function fitPageWidthToViewer(meiData){
+      const avail = viewerAvailableWidth();
+      const hardMax = Math.floor(avail - 6);
+      const FILL_TARGET = 0.92;
+
+      let pw = (lastGoodPageWidth && Math.abs(lastGoodPageWidth - avail) < 260 && lastRenderReason !== "spacing")
+        ? lastGoodPageWidth
+        : avail;
+
+      await renderWithPageWidth(pw, meiData);
+
+      let w = svgIntrinsicWidthPx();
+      let tries = 0;
+
+      while (w > hardMax && tries < 8){
+        pw = Math.max(320, Math.floor(pw * 0.94));
+        await renderWithPageWidth(pw, meiData);
+        w = svgIntrinsicWidthPx();
+        tries++;
+      }
+
+      tries = 0;
+      while (w > 0 && w < hardMax * FILL_TARGET && tries < 10){
+        const bump = Math.max(16, Math.floor((hardMax - w) * 0.35));
+        pw = Math.min(5000, pw + bump);
+        await renderWithPageWidth(pw, meiData);
+        const newW = svgIntrinsicWidthPx();
+        if (newW <= w + 1) break;
+        w = newW;
+        if (w > hardMax) break;
+        tries++;
+      }
+
+      tries = 0;
+      w = svgIntrinsicWidthPx();
+      while (w > hardMax && tries < 8){
+        pw = Math.max(320, Math.floor(pw * 0.96));
+        await renderWithPageWidth(pw, meiData);
+        w = svgIntrinsicWidthPx();
+        tries++;
+      }
+
+      lastGoodPageWidth = pw;
+    }
+
+   async function renderCurrent() {
+  if (!currentFile || !vrvToolkit) return;
+
+  let krnData = await fetchMei(currentFile);
+krnData = stripHumdrumDisplayTitle(krnData);
+await fitPageWidthToViewer(krnData);
+
+  updateScaleBadge();
+  updateSpacingBadge();
+
+  const keyShown = currentTargetKey
+    ? `${labelFor(currentTargetKey)} ${currentMode}`
+    : (octaveShift ? (octaveShift > 0 ? "8va↑" : "8va↓") : "original");
+
+  try {
+    const md = await getMetadata(currentFile);
+    const titleText = (md.title || "").trim();
+    setStatus(keyShown, titleText);
+
+    const cols = (md.collections && md.collections.length)
+      ? md.collections
+      : (md.collection ? [md.collection] : []);
+
+    currentTuneCollections = Array.from(new Set(
+      cols.map(x => String(x || "").trim()).filter(Boolean)
+    ));
+
+    currentTuneIsMine = getMyCollectionSet().has(currentFile);
+    renderCurrentTuneCollectionPills();
+  } catch (e) {
+    setStatus(keyShown, "");
+    currentTuneCollections = [];
+    currentTuneIsMine = getMyCollectionSet().has(currentFile);
+    renderCurrentTuneCollectionPills();
+  } finally {
+    lastRenderReason = "other";
+  }
+}
+
+    function setStatus(keyShown, titleText = "") {
+      const keyText  = keyShown && keyShown.trim ? keyShown : "—";
+      const titleStr = (titleText && titleText.trim()) ? titleText.trim() : "—";
+      document.getElementById('statusKey').textContent = keyText;
+      const titleValue = document.getElementById('titleValue');
+      if (titleValue) titleValue.textContent = titleStr;
+    }
+
+    async function pickRandomFilteredTune() {
+      if (!tuneFiles || tuneFiles.length === 0) throw new Error("No tunes found.");
+
+      const mmSelected    = getChecked('mmRow');
+      const meterSelected = getChecked('meterRow');
+      const colSelected   = getChecked('colRow');
+
+      const mySet = getMyCollectionSet();
+      const wantsMy = colSelected.includes(MY_LABEL);
+
+      const candidates = [];
+      for (const f of tuneFiles) {
+        try {
+          const md = await getMetadata(f);
+
+          const mmTag = (md.keyMode?.toLowerCase() === "minor") ? "Minor" : "Major";
+          const mmOk  = mmSelected.length === 0 ? true : mmSelected.includes(mmTag);
+
+          const meterOk = meterSelected.length === 0
+            ? true
+            : (md.meterSig ? meterSelected.includes(md.meterSig) : false);
+
+          const tuneCollections = (md.collections && md.collections.length) ? md.collections : (md.collection ? [md.collection] : []);
+          const isMine = mySet.has(f);
+
+          const colOk = colSelected.length === 0
+            ? true
+            : (
+                (wantsMy && isMine) ||
+                tuneCollections.some(c => colSelected.includes(c))
+              );
+
+          if (mmOk && meterOk && colOk) candidates.push(f);
+        } catch (e) {}
+      }
+
+      if (candidates.length === 0) throw new Error("No tunes match the selected tag filters.");
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+
+    async function showRandomTune() {
+      try {
+        currentFile = await pickRandomFilteredTune();
+
+        const md = await getMetadata(currentFile);
+        currentMode   = (md.keyMode?.toLowerCase() === "minor") ? "minor" : "major";
+        originalTonic = md.keyTonic || "";
+
+              let allowedTonics = tonicsByAccidentalsSelected(currentMode, accidentalsSelected);
+
+        const excluded = new Set(getChecked('exRow'));
+        allowedTonics = allowedTonics.filter(T => !excluded.has(T));
+
+        currentTargetKey = allowedTonics.length > 0
+          ? allowedTonics[Math.floor(Math.random() * allowedTonics.length)]
+          : "";
+
+        octaveShift = 0;
+        lastGoodPageWidth = null;
+        lastRenderReason = "other";
+        await renderCurrent();
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "");
+        currentTuneCollections = [];
+        currentTuneIsMine = false;
+        renderCurrentTuneCollectionPills();
+      }
+    }
+
+    async function octaveUp()   { octaveShift += 1; lastRenderReason="other"; await renderCurrent(); }
+    async function octaveDown() { octaveShift -= 1; lastRenderReason="other"; await renderCurrent(); }
+
+    async function halfStep(delta){
+      if (!currentTargetKey) return;
+      const pc = PC[currentTargetKey];
+      if (typeof pc !== "number") return;
+
+      const nextPc = ((pc + delta)%12+12)%12;
+      const next = preferSpellingFromCurrent(nextPc, currentMode, currentTargetKey);
+
+      currentTargetKey = next;
+      lastRenderReason="other";
+      await renderCurrent();
+    }
+    async function halfStepUp(){ await halfStep(+1); }
+    async function halfStepDown(){ await halfStep(-1); }
+
+    async function toggleEnharmonic(){
+      if (!currentTargetKey) return;
+      const pair = ENHARMONIC_MAP[currentTargetKey];
+      if (!pair) return;
+      currentTargetKey = pair;
+      lastRenderReason="other";
+      await renderCurrent();
+    }
+
+    async function discoverTunes() {
+  try {
+    const res = await fetch(`tunes.json?_=${Date.now()}`, { cache: 'no-cache' });
+    if (res.ok) {
+      const arr = await res.json();
+      const krn = (Array.isArray(arr) ? arr : [])
+        .filter(x => typeof x === 'string')
+        .map(x => x.split('#')[0].split('?')[0])
+        .filter(x => /\.krn$/i.test(x))
+        .map(x => x.replace(/^\.?\//,'').replace(/\\/g,'/'));
+      if (krn.length > 0) {
+        tuneFiles = Array.from(new Set(krn));
+        return;
+      }
+    }
+  } catch (e) {}
+
+  try {
+    const res = await fetch(`tunes/?_=${Date.now()}`, { cache: 'no-cache' });
+    if (res.ok) {
+      const html = await res.text();
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+
+      const hrefs = Array.from(tmp.querySelectorAll('a[href]'))
+        .map(a => a.getAttribute('href'))
+        .filter(Boolean);
+
+      const paths = hrefs
+        .map(h => h.split('#')[0].split('?')[0])
+        .filter(h => /\.krn$/i.test(h))
+        .map(h => (h.startsWith('tunes/') ? h : `tunes/${h.replace(/^\.?\//,'')}`));
+
+      if (paths.length > 0) {
+        tuneFiles = Array.from(new Set(paths));
+        return;
+      }
+    }
+  } catch (e) {}
+
+  tuneFiles = [];
+}
+
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src; s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(s);
+      });
+    }
+
+    function setFiltersDefaultOpen(){
+      const d = document.getElementById('filtersCard');
+      if (!d) return;
+      const mq = window.matchMedia('(min-width: 900px)');
+      const apply = () => { d.open = !!mq.matches; };
+      apply();
+      mq.addEventListener?.('change', apply);
+    }
+
+    async function init() {
+      setFiltersDefaultOpen();
+
+      addAccidentalRangeButtons("keysRangeRowTop", "keysRangeRowBottom");
+      addExcludeCheckboxes("exRow", excludeTonics);
+      addPlainCheckboxes("mmRow", majorMinorVals, true);
+
+      await discoverTunes();
+      if (!tuneFiles || tuneFiles.length === 0) setStatus("No tunes found.", "");
+
+      await buildCollectionsUIFromAllTunes();
+      await buildMetersUIFromAllTunes();
+
+      document.getElementById('keysAllBtn').addEventListener('click', keyRangeSelectAll);
+      document.getElementById('keysNoneBtn').addEventListener('click', keyRangeSelectNone);
+
+      document.getElementById('exAllBtn').addEventListener('click',   () => setAllCheckboxes('exRow', true));
+      document.getElementById('exNoneBtn').addEventListener('click',  () => setAllCheckboxes('exRow', false));
+
+      document.getElementById('meterAllBtn').addEventListener('click',  () => setAllCheckboxes('meterRow', true));
+      document.getElementById('meterNoneBtn').addEventListener('click', () => setAllCheckboxes('meterRow', false));
+
+      document.getElementById('colAllBtn').addEventListener('click',  () => { setAllCheckboxes('colRow', true); renderCurrentTuneCollectionPills(); });
+      document.getElementById('colNoneBtn').addEventListener('click', () => { setAllCheckboxes('colRow', false); renderCurrentTuneCollectionPills(); });
+
+      document.getElementById('scaleSlider').addEventListener('input', (e) => scaleSetFromSlider(e.target.value));
+      document.getElementById('spacingSlider').addEventListener('input', (e) => spacingSetFromSlider(e.target.value));
+
+      const verovioUrl = 'https://www.verovio.org/javascript/latest/verovio-toolkit-hum.js?v=latest';
+      try { await loadScript(verovioUrl); }
+      catch (err) { setStatus(`Failed to load Verovio: ${err.message}`, ""); return; }
+
+      const waitForGlobal = () => new Promise((resolve, reject) => {
+        const start = performance.now(); const maxWaitMs = 10000;
+        (function poll() {
+          if (window.verovio && window.verovio.module) return resolve();
+          if (performance.now() - start > maxWaitMs) return reject(new Error('Verovio global not found'));
+          setTimeout(poll, 50);
+        })();
+      });
+
+      try {
+        await waitForGlobal();
+        window.verovio.module.onRuntimeInitialized = () => {
+          try {
+            vrvToolkit = new verovio.toolkit();
+
+            document.getElementById('randomBtn').disabled  = false;
+
+            document.getElementById('octUpBtn').disabled   = false;
+            document.getElementById('octDownBtn').disabled = false;
+
+            document.getElementById('spacingPlusBtn').disabled  = false;
+            document.getElementById('spacingMinusBtn').disabled = false;
+
+            document.getElementById('musicPlusBtn').disabled  = false;
+            document.getElementById('musicMinusBtn').disabled = false;
+
+            document.getElementById('enharmonicBtn').disabled = false;
+            document.getElementById('halfUpBtn').disabled = false;
+            document.getElementById('halfDownBtn').disabled = false;
+
+            /* enable + wire reset buttons */
+            document.getElementById('scaleResetBtn').disabled = false;
+            document.getElementById('spacingResetBtn').disabled = false;
+            document.getElementById('scaleResetBtn').addEventListener('click', resetScale);
+            document.getElementById('spacingResetBtn').addEventListener('click', resetSpacing);
+
+            document.getElementById('randomBtn').addEventListener('click', () => { lastRenderReason="other"; showRandomTune(); });
+
+            document.getElementById('octUpBtn').addEventListener('click',  octaveUp);
+            document.getElementById('octDownBtn').addEventListener('click', octaveDown);
+
+            document.getElementById('halfUpBtn').addEventListener('click',  halfStepUp);
+            document.getElementById('halfDownBtn').addEventListener('click', halfStepDown);
+
+            document.getElementById('spacingPlusBtn').addEventListener('click', () => spacingChange(+SPACING_STEP));
+            document.getElementById('spacingMinusBtn').addEventListener('click', () => spacingChange(-SPACING_STEP));
+
+            document.getElementById('musicPlusBtn').addEventListener('click', () => musicSizeChange(+SCALE_STEP));
+            document.getElementById('musicMinusBtn').addEventListener('click', () => musicSizeChange(-SCALE_STEP));
+
+            document.getElementById('enharmonicBtn').addEventListener('click', toggleEnharmonic);
+
+            window.addEventListener('resize', debounce(() => {
+              lastRenderReason="resize";
+              lastGoodPageWidth = null;
+              renderCurrent();
+            }, 150));
+
+            updateSpacingBadge();
+            updateScaleBadge();
+
+            currentTuneCollections = [];
+            currentTuneIsMine = false;
+            renderCurrentTuneCollectionPills();
+
+            if (tuneFiles.length > 0) { lastRenderReason="init"; showRandomTune(); }
+          } catch (err) {
+            setStatus(`Toolkit init error: ${err.message}`, "");
+          }
+        };
+        setStatus("Initializing Verovio…", "");
+      } catch (err) {
+        setStatus(`Verovio not available: ${err.message}`, "");
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+
+ 
+
+</body>
+</html>
+
+
+
+
