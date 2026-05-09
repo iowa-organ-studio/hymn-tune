@@ -815,6 +815,9 @@ details#lyricsCard[open] > summary{background:#f3f3f8}
     const MY_LABEL = "My Collection";
     const MY_KEY = "tuneCatalog.myCollection.v1";
 
+    const APP_STATE_KEY = "randomHymn.state.v1";
+    const UI_STATE_KEY  = "randomHymn.uiState.v1";
+
     function getMyCollectionSet(){
       try{
         const raw = localStorage.getItem(MY_KEY);
@@ -968,6 +971,102 @@ details#lyricsCard[open] > summary{background:#f3f3f8}
         .replaceAll('"',"&quot;")
         .replaceAll("'","&#039;");
     }
+
+      // ===============================
+// App state (filters, sliders, etc.)
+// ===============================
+
+function saveAppState(){
+  const state = {
+    scale: baseOptions.scale,
+    spacing: baseOptions.spacingLinear,
+    accidentals: Array.from(accidentalsSelected),
+
+    exclude: getChecked('exRow'),
+    mm: getChecked('mmRow'),
+    meter: getChecked('meterRow'),
+    collection: getChecked('colRow'),
+
+    lyricSize: lyricSize
+  };
+
+  localStorage.setItem(APP_STATE_KEY, JSON.stringify(state));
+}
+
+function restoreCheckboxGroup(containerId, values){
+  if (!Array.isArray(values)) return;
+
+  const set = new Set(values);
+  document.querySelectorAll(`#${containerId} input`).forEach(el => {
+    el.checked = set.has(el.value);
+  });
+}
+
+function loadAppState(){
+  try{
+    const raw = localStorage.getItem(APP_STATE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+
+    if (s.scale) baseOptions.scale = s.scale;
+
+    if (s.spacing){
+      baseOptions.spacingLinear = s.spacing;
+      baseOptions.spacingNonLinear = s.spacing * SPACING_RATIO;
+    }
+
+    if (Array.isArray(s.accidentals)){
+      accidentalsSelected.clear();
+      s.accidentals.forEach(n => accidentalsSelected.add(n));
+    }
+
+    if (s.lyricSize) lyricSize = s.lyricSize;
+
+    // restore UI AFTER it exists
+    setTimeout(() => {
+      restoreCheckboxGroup('exRow', s.exclude);
+      restoreCheckboxGroup('mmRow', s.mm);
+      restoreCheckboxGroup('meterRow', s.meter);
+      restoreCheckboxGroup('colRow', s.collection);
+
+      // restore key range buttons
+      for (let n = 0; n <= 7; n++){
+        const btn = keyRangeButtons.get(n);
+        if (!btn) continue;
+        if (accidentalsSelected.has(n)) btn.classList.add('active');
+        else btn.classList.remove('active');
+      }
+
+      updateScaleBadge();
+      updateSpacingBadge();
+      renderCurrentTuneCollectionPills();
+    }, 0);
+
+  }catch(e){}
+}
+
+// ===============================
+// UI state (filters + lyrics open/closed)
+// ===============================
+
+function saveUIState(){
+  const state = {
+    filtersOpen: document.getElementById('filtersCard')?.open || false,
+    lyricsOpen: document.getElementById('lyricsCard')?.open || false
+  };
+  localStorage.setItem(UI_STATE_KEY, JSON.stringify(state));
+}
+
+function loadUIState(){
+  try{
+    const s = JSON.parse(localStorage.getItem(UI_STATE_KEY) || "{}");
+    if (typeof s.filtersOpen === "boolean")
+      document.getElementById('filtersCard').open = s.filtersOpen;
+    if (typeof s.lyricsOpen === "boolean")
+      document.getElementById('lyricsCard').open = s.lyricsOpen;
+  }catch{}
+}
+
 
       function lyricSizeChange(delta){
       lyricSize = clamp(lyricSize + delta, LYRIC_SIZE_MIN, LYRIC_SIZE_MAX);
@@ -1945,35 +2044,27 @@ async function getMetadata(fileName) {
     }
 
     function setFiltersDefaultOpen(){
-      const d = document.getElementById('filtersCard');
-      if (!d) return;
-      const mq = window.matchMedia('(min-width: 900px)');
-      const apply = () => { d.open = !!mq.matches; };
-      apply();
-      mq.addEventListener?.('change', apply);
-    }
+  const d = document.getElementById('filtersCard');
+  if (d) d.open = false;
+}
 
-    function setLyricsDefaultOpen(){
-      const d = document.getElementById('lyricsCard');
-      if (!d) return;
-      const mq = window.matchMedia('(min-width: 900px)');
-      const apply = () => { d.open = !!mq.matches; };
-      apply();
-      mq.addEventListener?.('change', apply);
-    }
+function setLyricsDefaultOpen(){
+  const d = document.getElementById('lyricsCard');
+  if (d) d.open = false;
+}
 
-    function setLyricsDefaultOpen(){
-      const d = document.getElementById('lyricsCard');
-      if (!d) return;
-      const mq = window.matchMedia('(min-width: 900px)');
-      const apply = () => { d.open = !!mq.matches; };
-      apply();
-      mq.addEventListener?.('change', apply);
-    }
+loadUIState();
+
+document.getElementById('filtersCard').addEventListener('toggle', saveUIState);
+document.getElementById('lyricsCard').addEventListener('toggle', saveUIState);
 
     async function init() {
       setFiltersDefaultOpen();
       setLyricsDefaultOpen();
+
+
+      document.body.addEventListener('change', saveAppState);
+      document.body.addEventListener('input', saveAppState);
 
       addAccidentalRangeButtons("keysRangeRowTop", "keysRangeRowBottom");
       addExcludeCheckboxes("exRow", excludeTonics);
@@ -1984,6 +2075,8 @@ async function getMetadata(fileName) {
 
       await buildCollectionsUIFromAllTunes();
       await buildMetersUIFromAllTunes();
+
+      loadAppState();
 
       document.getElementById('keysAllBtn').addEventListener('click', keyRangeSelectAll);
       document.getElementById('keysNoneBtn').addEventListener('click', keyRangeSelectNone);
@@ -2064,6 +2157,14 @@ async function getMetadata(fileName) {
               lastGoodPageWidth = null;
               renderCurrent();
             }, 150));
+
+            const catalogLink = document.getElementById('catalogLink');
+      if (catalogLink){
+        catalogLink.addEventListener('click', () => {
+          saveAppState();
+          saveUIState(); // optional but recommended
+        });
+      }
 
             updateSpacingBadge();
             updateScaleBadge();
