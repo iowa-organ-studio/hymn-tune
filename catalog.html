@@ -344,13 +344,13 @@ async function discoverTunes(){
     const res = await fetch(`tunes.json?_=${Date.now()}`, { cache:"no-cache" });
     if (res.ok){
       const arr = await res.json();
-      const mei = (Array.isArray(arr) ? arr : [])
+      const krn = (Array.isArray(arr) ? arr : [])
         .filter(x => typeof x === "string")
         .map(x => x.split("#")[0].split("?")[0])
-        .filter(x => /\.mei$/i.test(x))
+        .filter(x => /\.krn$/i.test(x))
         .map(x => x.replace(/^\.?\//,"").replace(/\\/g,"/"));
-      if (mei.length){
-        tuneFiles = Array.from(new Set(mei));
+      if (krn.length){
+        tuneFiles = Array.from(new Set(krn));
         return;
       }
     }
@@ -369,7 +369,7 @@ async function discoverTunes(){
 
       const paths = hrefs
         .map(h => h.split("#")[0].split("?")[0])
-        .filter(h => /\.mei$/i.test(h))
+        .filter(h => /\.krn$/i.test(h))
         .map(h => (h.startsWith("tunes/") ? h : `tunes/${h.replace(/^\.?\//,"")}`));
 
       if (paths.length){
@@ -383,122 +383,118 @@ async function discoverTunes(){
 }
 
 /* ===============================
-   MEI metadata parsing
+   krn metadata parsing
    =============================== */
-const MEI_NS = "http://www.music-encoding.org/ns/mei";
+const krn_NS = "http://www.music-encoding.org/ns/krn";
 const METADATA_CACHE_VERSION = 6;
-const meiCache = {};
+const krnCache = {};
 const mdCache  = {};
 
 function nodelistToArray(nl){ return Array.prototype.slice.call(nl || []); }
-function allByTagNS(xml, tag){ return nodelistToArray(xml.getElementsByTagNameNS(MEI_NS, tag)); }
+function allByTagNS(xml, tag){ return nodelistToArray(xml.getElementsByTagNameNS(krn_NS, tag)); }
 function firstByTagNS(xml, tag){
-  const nl = xml.getElementsByTagNameNS(MEI_NS, tag);
+  const nl = xml.getElementsByTagNameNS(krn_NS, tag);
   return nl && nl.length ? nl[0] : null;
 }
 
-async function fetchMei(fileName){
-  if (!meiCache[fileName]){
+async function fetchkrn(fileName){
+  if (!krnCache[fileName]){
     const res = await fetch(fileName, { cache:"no-cache" });
     if (!res.ok) throw new Error(`Failed to fetch ${fileName}: ${res.status}`);
-    meiCache[fileName] = await res.text();
+    krnCache[fileName] = await res.text();
   }
-  return meiCache[fileName];
+  return krnCache[fileName];
 }
 
-function parseCommentMetadataFromXml(xmlDoc){
-  if (!xmlDoc || !xmlDoc.documentElement) return null;
+function parseHumdrumMetadata(krnText) {
+  const md = {
+    title: "",
+    collections: [],
+    collection: "",
+    meterSig: "",
+    keyTonic: "",
+    keyMode: ""
+  };
 
-  const meiRoot = firstByTagNS(xmlDoc, "mei") || xmlDoc.documentElement;
-  const walker = xmlDoc.createTreeWalker(meiRoot, NodeFilter.SHOW_COMMENT, null);
+  const lines = String(krnText || "").split(/\r?\n/);
 
-  const lines = [];
-  for (let n = walker.nextNode(); n; n = walker.nextNode()){
-    const text = (n.nodeValue || "").trim();
-    if (!text) continue;
-    text.split(/\r?\n/).forEach(line => {
-      const s = line.trim();
-      if (s) lines.push(s);
-    });
-  }
-  if (!lines.length) return null;
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
 
-  const md = { keyMode:"", meterSig:"", collection:"", collections:[], title:"" };
-
-  for (const line of lines){
-    let mm = line.match(/^keyMode\s*:\s*(major|minor)\s*$/i);
-    if (mm){ md.keyMode = mm[1].toLowerCase(); continue; }
-
-    mm = line.match(/^meterSig\s*:\s*(\d+)\s*\/\s*(\d+)\s*$/i);
-    if (mm){ md.meterSig = `${mm[1]}/${mm[2]}`; continue; }
-
-    mm = line.match(/^collection\s*:\s*(.+)$/i);
-    if (mm){
-      const c = mm[1].trim();
-      if (c) md.collections.push(c);
-      if (!md.collection && c) md.collection = c;
+    // Title
+    if (line.startsWith("!!!OTL:")) {
+      const t = line.slice(7).trim();
+      if (t) md.title = t;
       continue;
     }
 
-    mm = line.match(/^title\s*:\s*(.+)$/i);
-    if (mm){ md.title = mm[1].trim(); continue; }
+    // Collections (can repeat, can be empty)
+    if (line.startsWith("!!!COL:")) {
+      const c = line.slice(7).trim();
+      if (c) md.collections.push(c);
+      continue;
+    }
+
+    // Split spine tokens
+    const tokens = rawLine.split("\t");
+
+    for (const tokRaw of tokens) {
+      const tok = tokRaw.trim();
+      if (!tok) continue;
+
+      // Meter
+      if (!md.meterSig) {
+        const mm = tok.match(/^\*M(\d+)\/(\d+)$/);
+        if (mm) {
+          md.meterSig = `${mm[1]}/${mm[2]}`;
+          continue;
+        }
+      }
+
+      // Key + mode
+      if (!md.keyTonic) {
+        const km = tok.match(/^\*([A-Ga-g])([#b-])?:$/);
+        if (km) {
+          const letter = km[1];
+          const acc = km[2] || "";
+
+          md.keyTonic =
+            letter.toUpperCase() +
+            (acc === "-" ? "b" : acc === "b" ? "b" : acc === "#" ? "#" : "");
+
+          md.keyMode = (letter === letter.toLowerCase()) ? "minor" : "major";
+          continue;
+        }
+      }
+    }
   }
 
-  const hasSomething = ["keyMode","meterSig","collection","title"].some(k => md[k]);
-  return hasSomething ? md : null;
+  md.collections = Array.from(new Set(md.collections));
+  if (!md.collection && md.collections.length) {
+    md.collection = md.collections[0];
+  }
+
+  return md;
 }
 
-function meterSigFromXml(xml){
-  const meters = allByTagNS(xml, "meterSig");
-  const mSig = meters.length ? meters[0] : null;
-  const count = (mSig?.getAttribute("count") || "").trim();
-  const unit  = (mSig?.getAttribute("unit")  || "").trim();
-  return (count && unit) ? `${count}/${unit}` : "";
-}
-
-function collectionsFromXml(xml){
-  const identifiers = allByTagNS(xml, "identifier");
-  return identifiers
-    .filter(el => (el.getAttribute("type") || "").toLowerCase() === "collection")
-    .map(el => (el.textContent || "").trim())
-    .filter(Boolean);
-}
 
 async function getMetadata(fileName){
   const cached = mdCache[fileName];
   if (cached && cached.__v === METADATA_CACHE_VERSION) return cached;
 
-  const meiText = await fetchMei(fileName);
-  const xml = new DOMParser().parseFromString(meiText, "application/xml");
+  const krnText = await fetchkrn(fileName);
+  const parsed = parseHumdrumMetadata(krnText);
 
-  const fromComments = parseCommentMetadataFromXml(xml);
-  if (fromComments){
-    if (!fromComments.meterSig) fromComments.meterSig = meterSigFromXml(xml);
-    if (!fromComments.collections || !fromComments.collections.length){
-      fromComments.collections = collectionsFromXml(xml);
-      if (!fromComments.collection && fromComments.collections.length){
-        fromComments.collection = fromComments.collections[0];
-      }
-    }
-    if (!fromComments.title){
-      const titleEl = firstByTagNS(xml, "title");
-      fromComments.title = (titleEl?.textContent || "").trim();
-    }
-    const out = { ...fromComments, __v: METADATA_CACHE_VERSION };
-    mdCache[fileName] = out;
-    return out;
-  }
+  const out = {
+    title: parsed.title || "",
+    collections: parsed.collections || [],
+    collection: parsed.collection || "",
+    meterSig: parsed.meterSig || "",
+    keyMode: parsed.keyMode || "",
+    __v: METADATA_CACHE_VERSION
+  };
 
-  const collections = collectionsFromXml(xml);
-  const collection  = collections.length ? collections[0] : "";
-  const meterSig    = meterSigFromXml(xml);
-  const titleEl = firstByTagNS(xml, "title");
-  const title = (titleEl?.textContent || "").trim();
-  const keys = allByTagNS(xml, "key");
-  const keyEl = keys.length ? keys[0] : null;
-  const keyMode  = (keyEl?.getAttribute("mode")  || "").trim();
-
-  const out = { keyMode, collection, collections, meterSig, title, __v: METADATA_CACHE_VERSION };
   mdCache[fileName] = out;
   return out;
 }
@@ -682,17 +678,62 @@ function loadScript(src){
   });
 }
 
-function stripMeiTitle(meiText){
-  try{
-    const xml = new DOMParser().parseFromString(meiText, "application/xml");
-    const titleStmts = allByTagNS(xml, "titleStmt");
-    for (const ts of titleStmts){
-      if (ts && ts.parentNode) ts.parentNode.removeChild(ts);
+function stripkrnTitle(krnText) {
+  return String(krnText || "")
+    .split(/\r?\n/)
+    .filter(line => !/^!!!OTL:/.test(line))
+    .join("\n");
+}
+
+function stripTextSpines(krnText){
+  const lines = String(krnText || "").split(/\r?\n/);
+
+  let textCols = [];
+  let headerSeen = false;
+  let originalColCount = 0;
+
+  const out = [];
+
+  for (const rawLine of lines){
+    const cells = rawLine.split("\t");
+
+    // Detect header with **text
+    if (!headerSeen && cells.some(c => c.trim() === "**text")){
+      headerSeen = true;
+      originalColCount = cells.length;
+
+      textCols = [];
+      for (let i = 0; i < cells.length; i++){
+        if ((cells[i] || "").trim() === "**text"){
+          textCols.push(i);
+        }
+      }
+
+      // Keep only NON-text spines in header
+      const newCells = cells.filter((_, i) => !textCols.includes(i));
+      out.push(newCells.join("\t"));
+      continue;
     }
-    return new XMLSerializer().serializeToString(xml);
-  }catch{
-    return meiText;
+
+    if (!headerSeen){
+      out.push(rawLine);
+      continue;
+    }
+
+    // Normalize row length
+    let row = cells;
+    if (row.length < originalColCount){
+      row = row.concat(Array(originalColCount - row.length).fill("."));
+    } else if (row.length > originalColCount){
+      row = row.slice(0, originalColCount);
+    }
+
+    // Remove text columns
+    const newCells = row.filter((_, i) => !textCols.includes(i));
+    out.push(newCells.join("\t"));
   }
+
+  return out.join("\n");
 }
 
 function computePreviewPageWidth(){
@@ -736,15 +777,13 @@ const engraveOptionsBase = {
   spacingStaff: 8,
   spacingLinear: 0.16,
   spacingNonLinear: 0.40,
-  minMeasureWidth: 44,
   justifyVertically: false,
-  breaks: "auto",
-  spacingLyrics: 6
+  breaks: "auto"
 };
 
 async function ensureVerovio(){
   if (vrvToolkit) return;
-  const verovioUrl = "https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js?v=latest";
+  const verovioUrl = "https://www.verovio.org/javascript/latest/verovio-toolkit-hum.js?v=latest";
   await loadScript(verovioUrl);
 
   await new Promise((resolve, reject) => {
@@ -785,15 +824,16 @@ async function previewTune(file){
   openPreview();
   previewSvg.innerHTML = `<div style="color:#666;padding:10px;">Engraving…</div>`;
 
-  let mei = await fetchMei(file);
-  mei = stripMeiTitle(mei);
+let krn = await fetchkrn(file);
+krn = stripkrnTitle(krn);
+krn = stripTextSpines(krn);   // ← ADD THIS LINE
 
   vrvToolkit.setOptions({
     ...engraveOptionsBase,
     pageWidth: computePreviewPageWidth()
   });
 
-  vrvToolkit.loadData(mei);
+  vrvToolkit.loadData(krn);
   const svg = vrvToolkit.renderToSVG(1, {});
   previewSvg.innerHTML = svg;
 
@@ -808,13 +848,13 @@ async function buildRows(){
   for (const f of tuneFiles){
     try{
       const md = await getMetadata(f);
-      const title = (md.title || f.split("/").pop().replace(/\.mei$/i,"") || "—").trim();
+      const title = (md.title || f.split("/").pop().replace(/\.krn$/i,"") || "—").trim();
       const cols = (md.collections && md.collections.length) ? md.collections : (md.collection ? [md.collection] : []);
       const mode = md.keyMode ? (md.keyMode.toLowerCase() === "minor" ? "Minor" : "Major") : "";
       const meter = md.meterSig || "";
       out.push({ file:f, title, collections: cols, mode, meter });
     }catch{
-      const fallback = f.split("/").pop().replace(/\.mei$/i,"") || "—";
+      const fallback = f.split("/").pop().replace(/\.krn$/i,"") || "—";
       out.push({ file:f, title:fallback, collections:[], mode:"", meter:"" });
     }
   }
