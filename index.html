@@ -1304,71 +1304,77 @@ function buildHumdrumForVerovio(humdrumText) {
   const lines = String(humdrumText || "").split(/\r?\n/);
   const placements = getLyricsPlacementStates();
 
-  const out = [];
   let headerSeen = false;
   let originalColCount = 0;
-  let textColToSpine = new Map();
-  let firstInterpLineDone = false;
 
-  // For each output text column, tells us which original text column to read from.
-  // This preserves the version that worked, including the above-verse ordering fix.
-  let sourceColForOutputCol = new Map();
+  let textCols = [];              // original indices of **text spines
+  let keepTextCols = [];          // subset we keep
+  let keepTextMeta = [];          // [{origIdx, side, order}]
+
+  const out = [];
 
   for (const rawLine of lines) {
     const cells = rawLine.split("\t");
 
+    // -------- FIND HEADER --------
     if (!headerSeen) {
-      if (cells.some(cell => cell.trim() === "**text")) {
+      if (cells.some(c => c.trim() === "**text")) {
         headerSeen = true;
         originalColCount = cells.length;
-        textColToSpine = new Map();
-        sourceColForOutputCol = new Map();
 
-        const textCols = [];
-        const aboveCols = [];
-        const belowCols = [];
-
+        // Identify all text columns
+        textCols = [];
         let spineIdx = 0;
         for (let i = 0; i < cells.length; i++) {
           if ((cells[i] || "").trim() === "**text") {
-            textColToSpine.set(i, spineIdx);
-            textCols.push(i);
-
-            const sel = placements[spineIdx] || {};
-            if (sel.above) aboveCols.push(i);
-            else if (sel.below) belowCols.push(i);
-
+            textCols.push({ col: i, spineIdx });
             spineIdx++;
           }
         }
 
-        // Preserve the working behavior: reverse only the selected "above" verse content.
-        const reversedAboveSourceCols = [...aboveCols].reverse();
+        // Decide which to keep
+        keepTextMeta = textCols
+          .map(({ col, spineIdx }) => {
+            const sel = placements[spineIdx] || {};
+            if (sel.above) return { col, side: "above", spineIdx };
+            if (sel.below) return { col, side: "below", spineIdx };
+            return null;
+          })
+          .filter(Boolean);
 
-        aboveCols.forEach((outCol, i) => {
-          sourceColForOutputCol.set(outCol, reversedAboveSourceCols[i]);
-        });
+        // Sort:
+        //  - above: reverse order (closest to staff first)
+        //  - below: normal order
+        const above = keepTextMeta
+          .filter(x => x.side === "above")
+          .sort((a, b) => b.spineIdx - a.spineIdx);
 
-        belowCols.forEach((outCol) => {
-          sourceColForOutputCol.set(outCol, outCol);
-        });
+        const below = keepTextMeta
+          .filter(x => x.side === "below")
+          .sort((a, b) => a.spineIdx - b.spineIdx);
 
-        const headerOut = cells.map((cell, idx) => {
-          if (!textColToSpine.has(idx)) return cell || "*";
+        keepTextMeta = [...above, ...below];
+        keepTextCols = keepTextMeta.map(x => x.col);
 
-          const sourceIdx = sourceColForOutputCol.has(idx)
-            ? sourceColForOutputCol.get(idx)
-            : idx;
+        // Build new header
+        const newCells = [];
 
-          const spIdx = textColToSpine.get(sourceIdx);
-          const sel = placements[spIdx] || {};
-          const visible = !!sel.above || !!sel.below;
+        for (let i = 0; i < cells.length; i++) {
+          if (!textCols.some(t => t.col === i)) {
+            newCells.push(cells[i] || "*");
+          }
+        }
 
-          if (!visible) return "**vdata";
-          return sel.above ? "**cdata" : "**vdata";
-        });
+        // Append kept text spines
+        keepTextMeta.forEach(meta => {
+  if (meta.side === "above") {
+    newCells.push("**cdata");   
+  } else {
+    newCells.push("**text");    // keep your normal below behavior
+  }
+});
 
-        out.push(headerOut.join("\t"));
+        out.push(newCells.join("\t"));
         continue;
       }
 
@@ -1376,7 +1382,7 @@ function buildHumdrumForVerovio(humdrumText) {
       continue;
     }
 
-    // Normalize row length.
+    // -------- NORMALIZE ROW LENGTH --------
     let row = cells;
     if (row.length < originalColCount) {
       row = row.concat(Array(originalColCount - row.length).fill("."));
@@ -1385,52 +1391,74 @@ function buildHumdrumForVerovio(humdrumText) {
     }
 
     const trimmed = rawLine.trim();
-    const isInterpLine = trimmed.startsWith("*") && !trimmed.startsWith("**");
+    // -------- TERMINATION LINE --------
+if (trimmed.startsWith("*-")) {
+  const newCells = [];
 
-    if (isInterpLine) {
-      const lineOut = row.map((cell, idx) => {
-        if (!textColToSpine.has(idx)) return cell || "*";
+  // non-text spines
+  for (let i = 0; i < row.length; i++) {
+    if (!textCols.some(t => t.col === i)) {
+      newCells.push("*-");
+    }
+  }
 
-        const sourceIdx = sourceColForOutputCol.has(idx)
-          ? sourceColForOutputCol.get(idx)
-          : idx;
+  // kept lyric spines
+  keepTextMeta.forEach(() => {
+    newCells.push("*-");
+  });
 
-        const spIdx = textColToSpine.get(sourceIdx);
-        const sel = placements[spIdx] || {};
-        const visible = !!sel.above || !!sel.below;
+  out.push(newCells.join("\t"));
+  continue;
+}
+    const isInterp =
+  trimmed.startsWith("*") &&
+  !trimmed.startsWith("**") &&
+  !trimmed.startsWith("*-");   // ← ADD THIS
 
-        if (!visible) return "*";
+    // -------- INTERPRETATION LINES --------
+    if (isInterp) {
+      const newCells = [];
 
-        if (!firstInterpLineDone) {
-          return sel.above ? "*above" : "*below";
+      // non-text spines
+      for (let i = 0; i < row.length; i++) {
+        if (!textCols.some(t => t.col === i)) {
+          newCells.push(row[i] || "*");
         }
-        return "*";
-      });
+      }
 
-      out.push(lineOut.join("\t"));
-      firstInterpLineDone = true;
+      keepTextMeta.forEach(meta => {
+  if (meta.side === "above") {
+    newCells.push("*above");   // ← REQUIRED for Verovio
+  } else {
+    newCells.push(row[meta.col] || "*");
+  }
+});
+
+      out.push(newCells.join("\t"));
       continue;
     }
 
-    const dataOut = row.map((cell, idx) => {
-      if (!textColToSpine.has(idx)) return cell || ".";
+    // -------- DATA / BAR / COMMENT LINES --------
+    const newCells = [];
 
-      const sourceIdx = sourceColForOutputCol.has(idx)
-        ? sourceColForOutputCol.get(idx)
-        : idx;
+    // non-text spines
+    for (let i = 0; i < row.length; i++) {
+      if (!textCols.some(t => t.col === i)) {
+        newCells.push(row[i] || ".");
+      }
+    }
 
-      const spIdx = textColToSpine.get(sourceIdx);
-      const sel = placements[spIdx] || {};
-      const visible = !!sel.above || !!sel.below;
-
-      if (!visible) return ".";
-      return row[sourceIdx] ?? ".";
+    // kept text spines
+    keepTextMeta.forEach(meta => {
+      newCells.push(row[meta.col] ?? ".");
     });
 
-    out.push(dataOut.join("\t"));
+    out.push(newCells.join("\t"));
   }
 
   return out.join("\n");
+
+  
 }
 
 async function getMetadata(fileName) {
@@ -2062,7 +2090,3 @@ async function getMetadata(fileName) {
 
 </body>
 </html>
-
-
-
-
