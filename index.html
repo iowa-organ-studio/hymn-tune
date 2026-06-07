@@ -1731,19 +1731,18 @@ async function getMetadata(fileName) {
       return pname + accid;
     }
 
-    function computeTransposeOption() {
+      function computeTransposeOption() {
       if (!currentTargetKey) return "";
-      const mode = (currentMode === "minor") ? "minor" : "major";
-      const tonicForVerovio = (mode === "minor")
-        ? relativeMajorForMinorTonic(currentTargetKey)
-        : currentTargetKey;
 
-      const tonicParam = tonicToVerovioTransposeTonic(tonicForVerovio);
+      const tonicParam =
+        tonicToVerovioTransposeTonic(currentTargetKey);
+
       if (!tonicParam) return "";
 
-      const prefix = octaveShift > 0 ? "+".repeat(octaveShift)
-                   : octaveShift < 0 ? "-".repeat(-octaveShift)
-                   : "";
+      const prefix =
+        octaveShift > 0 ? "+".repeat(octaveShift) :
+          octaveShift < 0 ? "-".repeat(-octaveShift) :
+            "";
 
       return prefix + tonicParam;
     }
