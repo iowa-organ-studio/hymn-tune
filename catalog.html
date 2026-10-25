@@ -230,9 +230,13 @@
       #previewBody{ padding:6px; }
     }
   </style>
+<link rel="stylesheet" href="practice-access.css">
 </head>
 
 <body>
+<div class="practice-access-bar"><button type="button" id="studentAccessButton">Student login</button><button type="button" id="exerciseHistoryButton">My practice history</button></div>
+<dialog id="studentAccessDialog" class="practice-dialog"><div class="practice-dialog-head"><strong>Student login</strong><button type="button" id="closeStudentAccess">Close</button></div><div id="studentAccessContent"><form id="studentLoginForm"><label>Eight-digit student UID <input id="studentUidInput" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required></label><button type="submit">Sign in</button></form><p id="studentLoginMessage" role="status"></p><div id="studentLoggedIn" hidden><span id="studentLoginName"></span> <button id="studentLogoutButton" type="button">Log out</button></div></div></dialog>
+<dialog id="exerciseHistoryDialog" class="practice-dialog practice-history-dialog"><div class="practice-dialog-head"><strong>My practice history</strong><button type="button" id="closeExerciseHistory">Close</button></div><div id="exerciseHistoryContent"></div></dialog>
 
   <div class="topbar">
     <div class="titleblock">
@@ -894,5 +898,6 @@ async function init(){
 document.addEventListener("DOMContentLoaded", init);
 </script>
 
+<script type="module" src="js/hymn-practice.js"></script>
 </body>
 </html>
